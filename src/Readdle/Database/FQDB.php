@@ -1,44 +1,25 @@
 <?php
 namespace Readdle\Database;
 
-class FQDB
+// TODO: unit test
+// TODO: error and handling
+
+
+final class FQDB
 {
 
     /**
-     * @var $_pdo \PDO object
-     * @var $_query \PDO query
+     * @var \PDO $_pdo - PDO object
      */
-    protected $_pdo;
-    protected $_query;
-    protected $_options;
+    private $_pdo;
 
-    protected $_beforeUpdateHandler;
-    protected $_beforeDeleteHandler;
-    protected $_warningHandler;
-    protected $_warningReporting = false;
-    protected $_errorHandler;
-    protected $_lastInsertId;
 
-    const NO_DB_CONNECTION_ERROR = 'No DB connection';
-    const NO_ACTIVE_QUERY_ERROR = 'No active query error';
-    const DB_ALREADY_CONNECTED = 'Already have active connection to a DB';
-    const NOT_CALLABLE_ERROR = 'param is not callable';
-    const WRONG_QUERY = 'given query doesn\'t fit called method';
-    const CLASS_NOT_EXIST = ' class not exists';
-    const PLACEHOLDERS_ERROR = 'Placeholders not set properly!';
+    private $_beforeUpdateHandler;
+    private $_beforeDeleteHandler;
+    private $_warningHandler;
+    private $_warningReporting = false;
+    private $_errorHandler;
 
-    private function __clone()
-    {
-    }
-
-    private function __wakeup()
-    {
-    }
-
-    public function __destruct()
-    {
-        $this->_pdo = null; //close \PDO connection
-    }
 
     /**
      * connects to DB, using params below
@@ -70,12 +51,12 @@ class FQDB
     {
         $this->_testQueryStarts($query, 'delete');
 
-        if (isset($this->_beforeDeleteHandler)) call_user_func_array($this->_beforeDeleteHandler, array($query, $options));
+        if (isset($this->_beforeDeleteHandler) && is_callable($this->_beforeDeleteHandler))
+            call_user_func_array($this->_beforeDeleteHandler, [$query, $options]);
 
-        $this->_preparePdoQuery($query);
-        $this->_execute($options);
-
-        return $this->_query->rowCount();
+        $statement = $this->_preparePdoQuery($query);
+        $this->_executeStatement($statement, $options);
+        return $statement->rowCount();
     }
 
     /**
@@ -88,12 +69,12 @@ class FQDB
     {
         $this->_testQueryStarts($query, 'update');
 
-        if (isset($this->_beforeUpdateHandler)) call_user_func_array($this->_beforeUpdateHandler, array($query, $options));
+        if (isset($this->_beforeUpdateHandler))
+            call_user_func_array($this->_beforeUpdateHandler, [$query, $options]);
 
-        $this->_preparePdoQuery($query);
-        $this->_execute($options);
-
-        return $this->_query->rowCount();
+        $statement = $this->_preparePdoQuery($query);
+        $this->_executeStatement($statement, $options);
+        return $statement->rowCount();
     }
 
     /**
@@ -105,10 +86,9 @@ class FQDB
     public function set($query, $options = array())
     {
         $this->_testQueryStarts($query, 'set');
-        $this->_preparePdoQuery($query);
-        $this->_execute($options);
-
-        return $this->_query->rowCount();
+        $statement = $this->_preparePdoQuery($query);
+        $this->_executeStatement($statement, $options);
+        return $statement->rowCount();
     }
 
     /**
@@ -120,10 +100,9 @@ class FQDB
     public function insert($query, $options = array())
     {
         $this->_testQueryStarts($query, 'insert');
-        $this->_preparePdoQuery($query);
-        $this->_execute($options);
 
-        return $this->_lastInsertId;
+        $statement = $this->_preparePdoQuery($query);
+        return $this->_executeStatement($statement, $options, true);
     }
 
     /**
@@ -135,27 +114,11 @@ class FQDB
     public function insertIgnore($query, $options = array())
     {
         $this->_testQueryStarts($query, 'insert ignore');
-        $this->_preparePdoQuery($query);
-        $this->_execute($options);
-
-        return $this->_query->rowCount();
+        $statement = $this->_preparePdoQuery($query);
+        $this->_executeStatement($statement, $options);
+        return $statement->rowCount();
     }
 
-    /**
-     * executes INSERT but didn't handle any thrown Exceptions
-     *
-     * @param string $query
-     * @param array $options
-     * @return int rows affected
-     */
-    public function insertException($query, $options = array())
-    {
-        $this->_testQueryStarts($query, 'insert');
-        $this->_preparePdoQuery($query);
-        $this->_query->execute($options); //let outside code catch any Exception and handle it
-
-        return $this->_query->rowCount();
-    }
 
 
     /**
@@ -167,25 +130,25 @@ class FQDB
     public function replace($query, $options = array())
     {
         $this->_testQueryStarts($query, 'replace');
-        $this->_preparePdoQuery($query);
-        $this->_execute($options);
-
-        return $this->_query->rowCount();
+        $statement = $this->_preparePdoQuery($query);
+        $this->_executeStatement($statement, $options);
+        return $statement->rowCount();
     }
 
     /**
-     * execute given SQL query. Please DON'T use instead of other functions
+     * Execute given SQL query. Please DON'T use instead of other functions
      *
      * example - use this if you need something like "TRUNCATE TABLE `users`"
      * use it VERY CAREFULLY!
      *
      * @param string $query
-     * @return boolean
+     * @return int affected rows count
      */
     public function execute($query)
     {
-        $this->_preparePdoQuery($query);
-        return $this->_execute([]);
+        $statement = $this->_preparePdoQuery($query);
+        $this->_executeStatement($statement, []);
+        return $statement->rowCount();
     }
 
     /**
@@ -196,13 +159,13 @@ class FQDB
      */
     public function queryValue($query, $options = array())
     {
-        $this->_runQuery($query, $options);
-        if ($this->_numRows()) {
-            $this->_query->setFetchMode(\PDO::FETCH_NUM);
-            $result = $this->_query->fetch();
+        $statement = $this->_runQuery($query, $options);
+        $result = $statement->fetch(\PDO::FETCH_NUM);
+
+        if (is_array($result))
             return $result[0];
-        }
-        return false; //no results - maybe we should return smth else
+        else
+            return false;
     }
 
     /**
@@ -213,10 +176,10 @@ class FQDB
      */
     public function queryAssoc($query, $options = array())
     {
-        $this->_runQuery($query, $options);
-        if ($this->_numRows()) {
-            $this->_query->setFetchMode(\PDO::FETCH_ASSOC);
-            return $this->_query->fetch();
+        $statement = $this->_runQuery($query, $options);
+        if ($statement->rowCount()) {
+            $statement->setFetchMode(\PDO::FETCH_ASSOC);
+            return $statement->fetch();
         }
         return false; //no results - maybe we should return smth else
     }
@@ -229,11 +192,11 @@ class FQDB
      */
     public function queryList($query, $options = array())
     {
-        $this->_runQuery($query, $options);
-        if ($this->_numRows()) {
-            $this->_query->setFetchMode(\PDO::FETCH_NUM);
-            return $this->_query->fetch();
-        }
+        $statement = $this->_runQuery($query, $options);
+
+        return $statement->fetch(\PDO::FETCH_NUM);
+
+
         return false; //no results - maybe we should return smth else
     }
 
@@ -245,16 +208,13 @@ class FQDB
      */
     public function queryVector($query, $options = array())
     {
-        $this->_runQuery($query, $options);
-        if ($this->_numRows()) {
-            $this->_query->setFetchMode(\PDO::FETCH_NUM);
-            $result = array();
-            $i = 0;
-            while (list($result[$i]) = $this->_query->fetch()) $i++;
-            unset($result[$i]);
+        $statement = $this->_runQuery($query, $options);
+        $result = $statement->fetchAll(\PDO::FETCH_COLUMN, 0);
+
+        if (count($result) == 0)
+            return false;
+        else
             return $result;
-        }
-        return false; //no results - maybe we should return smth else
     }
 
     /**
@@ -265,12 +225,13 @@ class FQDB
      */
     public function queryTable($query, $options = array())
     {
-        $this->_runQuery($query, $options);
-        if ($this->_numRows()) {
-            $this->_query->setFetchMode(\PDO::FETCH_ASSOC);
-            return $this->_fetchResult();
-        }
-        return false; //no results - maybe we should return smth else
+        $statement = $this->_runQuery($query, $options);
+        $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
+
+        if (count($result) == 0)
+            return false;
+        else
+            return $result;
     }
 
     /**
@@ -282,13 +243,22 @@ class FQDB
      */
     public function queryObjArray($query, $className, $options = array())
     {
-        if (!class_exists($className)) $this->_throwError($className . self::CLASS_NOT_EXIST);
-        $this->_runQuery($query, $options);
-        if ($this->_numRows()) {
-            $this->_query->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $className);
-            return $this->_fetchResult();
+        if (!class_exists($className)) {
+            $this->_throwError($className . self::CLASS_NOT_EXIST);
         }
-        return false; //no results - maybe we should return smth else
+        $statement = $this->_runQuery($query, $options);
+        if ($statement->rowCount()) {
+            $statement->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $className);
+
+            $result = [];
+            while ($row = $statement->fetch()) {
+                $result[] = $row;
+            }
+
+            return $result;
+        }
+        else
+            return false; //no results - maybe we should return smth else
     }
 
 
@@ -301,13 +271,15 @@ class FQDB
      */
     public function queryObj($query, $className, $options = array())
     {
-        if (!class_exists($className)) $this->_throwError($className . self::CLASS_NOT_EXIST);
-        $this->_runQuery($query, $options);
-        if ($this->_numRows()) {
-            $this->_query->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $className);
-            return $this->_query->fetch();
+        if (!class_exists($className))
+            $this->_throwError($className . self::CLASS_NOT_EXIST);
+
+        $statement = $this->_runQuery($query, $options);
+        if ($statement->rowCount()) {
+            $statement->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $className);
+            return $statement->fetch();
         }
-        return false; //no results - maybe we should return smth else
+        return false;
     }
 
     /**
@@ -357,35 +329,18 @@ class FQDB
         return $this->_pdo->quote($string);
     }
 
-    /**
-     * @param $query
-     * @return \PDOStatement
-     */
-    public function prepare($query)
-    {
-        return $this->_pdo->prepare($query);
-    }
-
-    /**
-     * checks do we have active query
-     */
-    protected function _checkQuery()
-    {
-        if ($this->_query === null) {
-            $this->_throwError(self::NO_ACTIVE_QUERY_ERROR);
-        }
-    }
 
     /**
      * prepares \PDO query
      * @param string $query
+     * @return \PDOStatement PDO statement from query
      */
-    protected function _preparePdoQuery($query)
+    private function _preparePdoQuery($query)
     {
         try {
-            $this->_query = $this->_pdo->prepare($query);
+            return $this->_pdo->prepare($query);
         } catch (\PDOException $e) {
-            $this->_throwError($e->getMessage());
+            $this->_error(null, FQDBException::PDO_CODE, $e);
         }
     }
 
@@ -393,19 +348,22 @@ class FQDB
      * executes prepared \PDO query
      * @param string $query
      * @param array $options
+     * @return \PDOStatement PDO statement from query
      */
-    protected function _runQuery($query, $options)
+    private function _runQuery($query, $options)
     {
         $this->_testQueryStarts($query, '[select|show]');
-        $this->_preparePdoQuery($query);
-        $this->_execute($options);
+
+        $statement = $this->_preparePdoQuery($query);
+        $this->_executeStatement($statement, $options);
+        return $statement;
     }
 
     /**
      * gathers Error information from \PDO
      * @return string
      */
-    protected function _getErrorInfo()
+    private function _getErrorInfo()
     {
         if ($err = $this->_query->errorInfo()) {
             return 'SQLSTATE: ' . $err[0] . "\n" . $err[2];
@@ -415,99 +373,130 @@ class FQDB
 
     /**
      * gathers Warning info from \PDO
-     * @return string|boolean
+     * @param string SQL query string with placeholders
+     * @param array $options options passed to query
+     * @return string
      */
-    protected function _getWarnings()
+    private function _getWarnings($sqlQueryString, $options=[])
     {
         $stm = $this->_pdo->query('SHOW WARNINGS');
         if ($stm->rowCount()) { //there is some warnings
             $stm->setFetchMode(\PDO::FETCH_ASSOC);
-            $warnings = "Query:\n /* " . $this->_query->queryString . "\nactual values (";
+            $warnings = "Query:\n /* {$sqlQueryString}\n";
 
-            if (!empty($this->_options))
-                foreach ($this->_options as $key => $value)
+
+            if (!empty($options)) {
+                $warnings .= "Actual values (";
+
+                foreach ($options as $key => $value) {
                     $warnings .= $key . '=' . print_r($value, true) . ', ';
-            $warnings = substr($warnings, 0, -2) . ") */ \nproduced Warnings:";
+                }
+
+                $warnings = substr($warnings, 0, -2) . ") */\n";
+            }
+
+
+            $warnings .= "Produced Warnings:";
             while ($warn = $stm->fetch()) {
                 $warnings .= "\n* " . $warn['Message'];
             }
             return $warnings;
         }
-        return false;
+        return '';
     }
 
     /**
      * executes prepared \PDO query
+     * @param \PDOStatement $statement PDO Statement
      * @param array $options placeholders values
+     * @param bool $needsLastInsertId should _executeStatement return lastInsertId
+     * @return int last insert id or 0
      */
-    protected function _execute($options)
+    private function _executeStatement($statement, $options, $needsLastInsertId = false)
     {
+        $sqlQueryString = $statement->queryString;
+        $lastInsertId = 0;
+
         try {
-            $this->_preExecuteOptionsCheck($options);
-            $this->_options = $options; //store options for errors/warnings handlers
+            $this->_preExecuteOptionsCheck($sqlQueryString, $options);
 
             foreach ($options as $placeholder => $value) {
-                $this->_bindParam($placeholder, $value);
+                if (is_array($value)) {
+                    $statement->bindParam($placeholder, $value['data'], $value['type']);
+                } else {
+                    $statement->bindParam($placeholder, $value);
+                }
             }
 
-            $this->_query->execute(); //options already binded to query
-            $this->_lastInsertId = $this->_pdo->lastInsertId(); //if table has no PRI KEY, there will be 0
+            $statement->execute(); //options are already bound to query
+
+
+            if ($needsLastInsertId)
+                $lastInsertId = $this->_pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
+
         } catch (\PDOException $e) {
-            $this->_throwError($e->getMessage());
+            $this->_error(null, FQDBException::PDO_CODE, $e);
         }
+
         if ($this->_warningReporting) {
-            if ($warningMessage = $this->_getWarnings()) {
+            $warningMessage = $this->_getWarnings($sqlQueryString, $options);
+
+            if (!empty($warningMessage)) {
                 $this->_throwWarning($warningMessage);
             }
         }
+
+        return $lastInsertId;
     }
 
     /**
-     * fetches result and returns it as array
-     * @return array
+     * @param $sqlQueryString - original SQL string
+     * @param $options - options set
+     * @throws FQDBException - when placeholders are not set properly
      */
-    protected function _fetchResult()
+    private function _preExecuteOptionsCheck($sqlQueryString, $options)
     {
-        $result = array();
-        while ($row = $this->_query->fetch()) {
-            $result[] = $row;
+        preg_match_all('/:[a-z]\w*/u', $sqlQueryString, $placeholders); // !!!!WARNING!!!! placeholders SHOULD start form lowercase letter!
+
+        if (empty($placeholders) || empty($placeholders[0]))
+            return; //no placeholders found
+
+        foreach ($placeholders[0] as $placeholder) {
+            if (!array_key_exists($placeholder, $options)) {
+                //placeholder not set oops
+                throw new FQDBException('Placeholders not set properly!' . json_encode($options) . ' ' . json_encode($placeholders) . "{$sqlQueryString}");
+            }
         }
-        return $result;
     }
 
-    /**
-     * counts affected rows
-     * @return int affected rows count
-     */
-    protected function _numRows()
-    {
-        return $this->_query->rowCount();
-    }
 
     /**
      * checks if query starts correctly
-     * throws error if its not
      * @param string $query
      * @param string $needle
+     * @throws \Readdle\Database\FQDBException if its not
      */
     protected function _testQueryStarts($query, $needle)
     {
-        if (!preg_match("/^$needle.*/i", $query)) {
-            $this->_throwError(self::WRONG_QUERY);
+        if (!preg_match("/^{$needle}.*/i", $query)) {
+            $this->_error(FQDBException::WRONG_QUERY, FQDBException::FQDB_CODE);
         }
     }
 
     /**
      * handle Errors
      * @param string $message error text
+     * @param int $code code 0 - FQDB, 1 - PDO
+     * @param \Exception $exception previous Exception
+     * @throws \Readdle\Database\FQDBException if its not
      */
-    protected function _throwError($message)
+    protected function _error($message, $code, $exception = null)
     {
         if (isset($this->_errorHandler)) {
-            call_user_func($this->_errorHandler, $message);
-        } else {
-            trigger_error($message, E_USER_ERROR);
-            die(); // default error handler
+            call_user_func($this->_errorHandler, $message, $code, $exception);
+        }
+        else {
+            throw new FQDBException($message, $code, $exception);
         }
     }
 
@@ -556,8 +545,7 @@ class FQDB
      */
     public function getBeforeDeleteHandler()
     {
-        if (isset($this->_beforeDeleteHandler)) return $this->_beforeDeleteHandler;
-        return false;
+        return $this->_beforeDeleteHandler;
     }
 
     /**
@@ -566,8 +554,7 @@ class FQDB
      */
     public function getBeforeUpdateHandler()
     {
-        if (isset($this->_beforeUpdateHandler)) return $this->_beforeUpdateHandler;
-        return false;
+        return $this->_beforeUpdateHandler;
     }
 
     /**
@@ -589,12 +576,11 @@ class FQDB
      */
     public function getWarningHandler()
     {
-        if (isset($this->_warningHandler)) return $this->_warningHandler;
-        return false;
+        return $this->_warningHandler;
     }
 
     /**
-     * sets Warnign reporting on\off
+     * sets Warning reporting on\off
      * @param boolean $bool
      */
     public function setWarningReporting($bool = true)
@@ -621,21 +607,9 @@ class FQDB
      */
     public function getErrorHandler()
     {
-        if (isset($this->_errorHandler)) return $this->_errorHandler;
-        return false;
+        return $this->_errorHandler;
     }
 
-    protected function _preExecuteOptionsCheck($options)
-    {
-        preg_match_all('/:[a-z]\w*/u', $this->_query->queryString, $placeholders); //!!!!WARNING!!!! placeholders SHOULD start form lowcase letter!!
-        if (empty($placeholders) || empty($placeholders[0])) return; //no placeholders found
-        foreach ($placeholders[0] as $placeholder) {
-            if (!array_key_exists($placeholder, $options)) {
-                //placeholder not set oops
-                throw new FQDBException('Placeholders not set properly!' . json_encode($options) . ' ' . json_encode($placeholders) . "{$this->_query->queryString}");
-            }
-        }
-    }
 
     /**
      * @return \PDO
@@ -645,35 +619,4 @@ class FQDB
         return $this->_pdo;
     }
 
-    /**
-     * use at your own risk!
-     *
-     * @return \PDO
-     */
-    public function getQuery()
-    {
-        return $this->_query;
-    }
-
-    /**
-     * bind Param for a PDO statement to query
-     *
-     * $value should contain actual value, or array:
-     * ['data' => actualData, 'type' => PDO::PARAM_TYPE] (PDO::PARAM_STR by default)
-     * for example:
-     * ['data' => 123, 'type' => \PDO::PARAM_INT]
-     *
-     * @param string $name
-     * @param mixed $value
-     * @return $this
-     */
-    protected function _bindParam($name, $value)
-    {
-        if (is_array($value)) {
-            $this->_query->bindParam($name, $value['data'], $value['type']);
-        } else {
-            $this->_query->bindParam($name, $value);
-        }
-        return $this;
-    }
 }
