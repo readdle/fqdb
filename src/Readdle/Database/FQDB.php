@@ -57,67 +57,67 @@ final class FQDB
     /**
      * executes DELETE query with placeholders in 2nd param
      * @param string $query
-     * @param array $options
+     * @param array $params
      * @return int affected rows count
      */
-    public function delete($query, $options = array())
+    public function delete($query, $params = array())
     {
         $this->_testQueryStarts($query, 'delete');
 
         if ($this->_beforeDeleteHandler !== null)
-            call_user_func_array($this->_beforeDeleteHandler, [$query, $options]);
+            call_user_func_array($this->_beforeDeleteHandler, [$query, $params]);
 
         $statement = $this->_preparePDOStatement($query);
-        $this->_executeStatement($statement, $options);
+        $this->_executeStatement($statement, $params);
         return $statement->rowCount();
     }
 
     /**
      * executes UPDATE query with placeholders in 2nd param
      * @param string $query
-     * @param array $options
+     * @param array $params PDO names params, starting with :
      * @return int affected rows count
      */
-    public function update($query, $options = array())
+    public function update($query, $params = array())
     {
         $this->_testQueryStarts($query, 'update');
 
         if ($this->_beforeUpdateHandler !== null)
-            call_user_func_array($this->_beforeUpdateHandler, [$query, $options]);
+            call_user_func_array($this->_beforeUpdateHandler, [$query, $params]);
 
         $statement = $this->_preparePDOStatement($query);
-        $this->_executeStatement($statement, $options);
+        $this->_executeStatement($statement, $params);
         return $statement->rowCount();
     }
 
     /**
      * executes INSERT query with placeholders in 2nd param
      * @param string $query
-     * @param array $options
+     * @param array $params
      * @return int last inserted id
      */
-    public function insert($query, $options = array())
+    public function insert($query, $params = array())
     {
         $this->_testQueryStarts($query, 'insert');
         $statement = $this->_preparePDOStatement($query);
-        return $this->_executeStatement($statement, $options, true);
+        return $this->_executeStatement($statement, $params, true);
     }
 
 
     /**
      * executes SET query with placeholders in 2nd param
      * @param string $query
-     * @param array $options
+     * @param array $params
      * @return int affected rows count
      */
-    public function set($query, $options = array())
+    public function set($query, $params = array())
     {
         return $this->execute($query, $params, 'set');
     }
 
 
     /**
-     * executes INSERT query with placeholders in 2nd param
+     * executes INSERT IGNORE query with placeholders in 2nd param
      * @param string $query
      * @param array $params
      * @return int rows affected

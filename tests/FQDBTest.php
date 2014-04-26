@@ -1,7 +1,5 @@
 <?php
 use Readdle\Database\FQDB;
-use Readdle\Database\FQDBException;
-
 
 class FQDBTest extends PHPUnit_Framework_TestCase {
 
@@ -21,8 +19,9 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testInsert() {
-        $lastInsertId1 = $this->fqdb->insert("INSERT INTO test (content, data) VALUES ('test', 'data')");
-        $lastInsertId2 = $this->fqdb->insert("INSERT INTO test (content, data) VALUES ('test', 'data')");
+        $lastInsertId1 = $this->fqdb->insert("INSERT INTO test (content, data) VALUES ('test', :data)", [':data' => 'data']);
+        $lastInsertId2 = $this->fqdb->insert("INSERT INTO test (content, data) VALUES ('test', :data)", [':data' => 'data']);
+
         $this->assertGreaterThan($lastInsertId1, $lastInsertId2);
     }
 
@@ -134,7 +133,7 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
     public function testUpdate() {
         $countInTable = intval($this->fqdb->queryValue("SELECT COUNT(*) FROM test"));
-        $count = $this->fqdb->update("UPDATE test SET content='new'");
+        $count = $this->fqdb->update("UPDATE test SET content=:new", [':new' => 'new']);
         $this->assertEquals($countInTable, $count);
     }
 
