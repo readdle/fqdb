@@ -232,6 +232,11 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
         $this->assertInstanceOf('\PDO', $this->fqdb->getPdo());
     }
 
+    public function testQuote() {
+        $quoted = $this->fqdb->quote("'test'");
+        $this->assertEquals("'''test'''", $quoted);
+    }
+
     public function testBeforeUpdateHandler() {
         $sqlFromHandler = '';
         $optionsFromHandler = [];
