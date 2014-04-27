@@ -3,6 +3,8 @@ fqdb
 
 Wrapper for PDO with specific DB operations and more checks. 
 
+[![Build Status](https://travis-ci.org/readdle/fqdb.svg?branch=master)](https://travis-ci.org/readdle/fqdb)
+
 Example: 
 
 ```php
