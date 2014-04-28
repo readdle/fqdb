@@ -4,9 +4,9 @@ namespace Readdle\Database;
 final class FQDBException extends \RuntimeException
 {
 
-    const FQDB_CODE     = 0;
-    const PDO_CODE      = 1;
-
+    const FQDB_CODE              = 0;
+    const PDO_CODE               = 1;
+    const FQDB_PROVIDER_CODE     = 2;
 
     const WRONG_QUERY               = 'Given query does not fit called method';
     const NO_DB_CONNECTION_ERROR    = 'No DB connection';
@@ -18,8 +18,10 @@ final class FQDBException extends \RuntimeException
 
 
 
+
+
     public function __construct($message = "", $code, \Exception $previous = null) {
-        $code_message_prefix = ['FQDB', 'PDO'];
+        $code_message_prefix = ['FQDB', 'PDO', 'FQDBProvider'];
         if (empty($message) && $previous != null)
             $message = $previous->getMessage();
 
