@@ -1,7 +1,9 @@
 fqdb
 ====
 
-Wrapper for PDO with specific DB operations and more checks. 
+Wrapper for PDO with specific DB operations and more checks. Available [via composer](https://packagist.org/packages/readdle/fqdb). 
+
+[![Build Status](https://travis-ci.org/readdle/fqdb.svg?branch=master)](https://travis-ci.org/readdle/fqdb)
 
 Example: 
 
@@ -16,7 +18,7 @@ $hash = $fqdb->queryAssoc("SELECT id, content FROM idcontent WHERE id=13");
 
 ```
 
-FQDB has separate methods for different SQL queries. It throws exception is  SQL query and method name does not match.
+FQDB has separate methods for different SQL queries. It throws exception if SQL query and method name does not match.
 
 - insert 
 - delete 
@@ -26,7 +28,7 @@ FQDB has separate methods for different SQL queries. It throws exception is  SQL
 - select and show (queryValue, queryList, queryVector, queryAssoc, queryTable, queryObj, queryObjArray) 
 
 
-FQDB uses PDO named parameters with additional checks, that there are no unused parameters and no unbind parameters.
+FQDB uses PDO named parameters with additional checks for unused parameters and unbind parameters.
 
-For MySQL FQDB has automatic warning reporting, that fetches MySQL warnings from the database. 
+For MySQL driver FQDB has optional warning reporting that emits MySQL warnings as PHP warnings. 
 
