@@ -428,7 +428,7 @@ final class FQDB
                 $lastInsertId = $this->_pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
 
         } catch (\PDOException $e) {
-            $this->_error(null, FQDBException::PDO_CODE, $e);
+            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
 
         if ($this->_warningReporting) {
