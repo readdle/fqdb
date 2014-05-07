@@ -39,7 +39,7 @@ final class FQDB
             $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             return $this;
         } catch (\PDOException $e) {
-            $this->_error(null, FQDBException::PDO_CODE, $e);
+            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
             die();
         }
     }
@@ -284,7 +284,7 @@ final class FQDB
         try {
             $this->_pdo->beginTransaction();
         } catch (\PDOException $e) {
-            $this->_error(null, FQDBException::PDO_CODE, $e);
+            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
     }
 
@@ -297,7 +297,7 @@ final class FQDB
             $this->_pdo->commit();
         } catch (\PDOException $e) {
             $this->rollbackTransaction();
-            $this->_error(null, FQDBException::PDO_CODE, $e);
+            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
     }
 
@@ -309,7 +309,7 @@ final class FQDB
         try {
             $this->_pdo->rollBack();
         } catch (\PDOException $e) {
-            $this->_error(null, FQDBException::PDO_CODE, $e);
+            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
     }
 
@@ -335,7 +335,7 @@ final class FQDB
         try {
             return $this->_pdo->prepare($query);
         } catch (\PDOException $e) {
-            $this->_error(null, FQDBException::PDO_CODE, $e);
+            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
         return null;
     }
