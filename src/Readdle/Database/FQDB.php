@@ -277,6 +277,25 @@ final class FQDB
     }
 
     /**
+     * Execute query and apply a callback function to each row
+     *
+     * @param string $query
+     * @param array $options
+     * @param callable $callback
+     */
+    public function queryTableCallback($query, $options = [], $callback)
+    {
+        if(!is_callable($callback)) {
+            $this->_error(FQDBException::NOT_CALLABLE_ERROR, FQDBException::FQDB_CODE);
+        }
+        $statement = $this->_runQuery($query, $options);
+        while ($row = $statement->fetch(\PDO::FETCH_ASSOC)) {
+            call_user_func($callback, $row);
+        }
+        return true; //executed successfully
+    }
+
+    /**
      * starts transaction
      */
     public function beginTransaction()

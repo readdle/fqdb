@@ -1,5 +1,9 @@
 <?php
+require_once '../src/Readdle/Database/FQDB.php';
+require_once '../src/Readdle/Database/FQDBException.php';
+
 use Readdle\Database\FQDB;
+use Readdle\Database\FQDBException;
 
 class FQDBTest extends PHPUnit_Framework_TestCase {
 
@@ -7,7 +11,6 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
      * @var FQDB $fqdb;
      */
     private $fqdb;
-
 
     public function setUp() {
         $this->fqdb = new FQDB('sqlite::memory:');
@@ -99,6 +102,18 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(1, $object->id);
     }
 
+    public function testQueryTableCallbackOk() {
+        $noValues = $this->fqdb->queryTableCallback("SELECT * FROM test WHERE id=:id", [':id' => 1], function($row) {return $row;});
+        $this->assertTrue($noValues);
+    }
+
+    /**
+     * @expectedException \Readdle\Database\FQDBException
+     */
+    public function testQueryTableCallbackFail() {
+        $noValues = $this->fqdb->queryTableCallback("SELECT * FROM test WHERE id=1", [], 'not a valid callback');
+        $this->assertTrue($noValues);
+    }
 
     /**
      * @expectedException \Readdle\Database\FQDBException
