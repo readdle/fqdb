@@ -1,6 +1,4 @@
 <?php
-require_once '../src/Readdle/Database/FQDB.php';
-require_once '../src/Readdle/Database/FQDBException.php';
 
 use Readdle\Database\FQDB;
 use Readdle\Database\FQDBException;

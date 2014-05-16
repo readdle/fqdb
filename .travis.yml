@@ -5,3 +5,8 @@ php:
   - hhvm
 install: composer install
 script: ./vendor/bin/phpunit --configuration phpunit.xml --coverage-text
+notifications:
+    email:
+        - andrian@readdle.com
+    on_success: never
+    on_failure: always
