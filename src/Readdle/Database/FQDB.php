@@ -5,7 +5,7 @@ namespace Readdle\Database;
 // TODO: error and handling
 
 
-final class FQDB
+final class FQDB implements \Serializable
 {
 
     /**
@@ -43,6 +43,16 @@ final class FQDB
             die();
         }
     }
+
+    // we could not serialize PDO object anyway
+    public function serialize() {
+        return null;
+    }
+
+    public function unserialize($string) {
+        return null;
+    }
+
 
     /**
      * Returns raw PDO object (for sessions?)
