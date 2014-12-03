@@ -253,7 +253,7 @@ final class FQDB implements \Serializable
      * @param array $classConstructorArguments
      * @return array|false
      */
-    public function queryObjArray($query, $className, $options = array(), $classConstructorArguments = ())
+    public function queryObjArray($query, $className, $options = array(), $classConstructorArguments = array())
     {
         if (!class_exists($className)) {
             $this->_error(FQDBException::CLASS_NOT_EXIST, FQDBException::FQDB_CODE);
