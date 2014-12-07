@@ -250,16 +250,17 @@ final class FQDB implements \Serializable
      * @param string $query
      * @param string $className
      * @param array $options
+     * @param array $classConstructorArguments
      * @return array|false
      */
-    public function queryObjArray($query, $className, $options = array())
+    public function queryObjArray($query, $className, $options = array(), $classConstructorArguments = array())
     {
         if (!class_exists($className)) {
             $this->_error(FQDBException::CLASS_NOT_EXIST, FQDBException::FQDB_CODE);
         }
 
         $statement = $this->_runQuery($query, $options);
-        $result = $statement->fetchAll(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $className);
+        $result = $statement->fetchAll(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $className, $classConstructorArguments);
         if (count($result) == 0)
             return false;
         else
@@ -272,16 +273,17 @@ final class FQDB implements \Serializable
      * @param string $query
      * @param string $className
      * @param array $options
+     * @param array $classConstructorArguments
      * @return object|false
      */
-    public function queryObj($query, $className, $options = array())
+    public function queryObj($query, $className, $options = array(), $classConstructorArguments = array())
     {
         if (!class_exists($className)) {
             $this->_error(FQDBException::CLASS_NOT_EXIST, FQDBException::FQDB_CODE);
         }
 
         $statement = $this->_runQuery($query, $options);
-        $statement->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $className);
+        $statement->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $className, $classConstructorArguments);
 
         return $statement->fetch();
     }
