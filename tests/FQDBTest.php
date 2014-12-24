@@ -250,6 +250,11 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals("'''test'''", $quoted);
     }
 
+    public function testQuoteIdentifier() {
+        $quoted = $this->fqdb->quote("test", FQDB::QUOTE_IDENTIFIER);
+        $this->assertEquals("`test`", $quoted);
+    }
+
     public function testBeforeUpdateHandler() {
         $sqlFromHandler = '';
         $optionsFromHandler = [];

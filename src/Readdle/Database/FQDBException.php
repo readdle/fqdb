@@ -15,7 +15,7 @@ final class FQDBException extends \RuntimeException
     const NOT_CALLABLE_ERROR        = 'Param is not callable';
     const CLASS_NOT_EXIST           = 'Class not exists';
     const PLACEHOLDERS_ERROR        = 'Placeholders not set properly';
-
+    const IDENTIFIER_QUOTE_ERROR    = 'Could not quote identifier: contains quote character';
 
 
 

@@ -8,6 +8,14 @@ namespace Readdle\Database;
 final class FQDB implements \Serializable
 {
 
+    const QUOTE_DEFAULT = 1;
+    const QUOTE_IDENTIFIER = 2;
+
+
+    const DB_DEFAULT = 'ansi';
+    const DB_MYSQL = 'mysql';
+    const DB_SQLITE = 'sqlite';
+
     /**
      * @var \PDO $_pdo - PDO object
      */
@@ -18,7 +26,7 @@ final class FQDB implements \Serializable
     private $_beforeDeleteHandler;
     private $_warningHandler;
     private $_warningReporting = false;
-    private $_isMySQL; // for warnings
+    private $_databaseServer = self::DB_DEFAULT; // for SQL specific stuff
     private $_errorHandler;
 
 
@@ -35,12 +43,15 @@ final class FQDB implements \Serializable
         try {
             $this->_pdo = new \PDO($dsn, $username, $password, $driver_options);
             if (strpos($dsn, 'mysql') !== false)
-                $this->_isMySQL = true;
+                $this->_databaseServer = self::DB_MYSQL;
+            else if (strpos($dsn, 'sqlite') !== false)
+                $this->_databaseServer = self::DB_SQLITE;
+
             $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             return $this;
         } catch (\PDOException $e) {
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
-            die();
+            trigger_error('FQDB Fatal', E_ERROR);
         }
     }
 
@@ -348,11 +359,30 @@ final class FQDB implements \Serializable
     /**
      *
      * @param string $string
+     * @param int $mode -- FQDB::QUOTE_DEFAULT (for regular data) or FQDB::QUOTE_IDENTIFIER for table and field names
      * @return string quoted
      */
-    public function quote($string)
+    public function quote($string, $mode = self::QUOTE_DEFAULT)
     {
-        return $this->_pdo->quote($string);
+        if ($mode == self::QUOTE_IDENTIFIER)
+        {
+            // SQL ANSI default
+            $quoteSymbol = '"';
+
+            // MySQL and SQLite specific
+            if ($this->_databaseServer == self::DB_MYSQL || $this->_databaseServer == self::DB_SQLITE) {
+                $quoteSymbol = '`';
+            }
+
+            // quotes inside mysql field are so rare, that we'd rather ban them
+            if (strpos($string, $quoteSymbol) !== false)
+                $this->_error(FQDBException::IDENTIFIER_QUOTE_ERROR, FQDBException::FQDB_CODE);
+
+            return $quoteSymbol . $string . $quoteSymbol;
+        }
+        else {
+            return $this->_pdo->quote($string);
+        }
     }
 
 
@@ -395,7 +425,7 @@ final class FQDB implements \Serializable
      */
     private function _getWarnings($sqlQueryString, $options=[])
     {
-        if ($this->_isMySQL) {
+        if ($this->_databaseServer === self::DB_MYSQL) {
             $stm = $this->_pdo->query('SHOW WARNINGS');
             $sqlWarnings = $stm->fetchAll(\PDO::FETCH_ASSOC);
         }
@@ -411,7 +441,7 @@ final class FQDB implements \Serializable
                 $warnings .= "Params: (";
 
                 foreach ($options as $key => $value) {
-                    $warnings .= $key . '=' . print_r($value, true) . ', ';
+                    $warnings .= $key . '=' . json_encode($value) . ', ';
                 }
 
                 $warnings = substr($warnings, 0, -2) . ")\n";
@@ -532,7 +562,7 @@ final class FQDB implements \Serializable
     {
         if (isset($this->_errorHandler)) {
             call_user_func($this->_errorHandler, $message, $code, $exception);
-            die('FQDB error handler function should die() or throw another exception!');
+            trigger_error('FQDB error handler function should die() or throw another exception!', E_ERROR);
         }
         else {
             throw new FQDBException($message, $code, $exception);
