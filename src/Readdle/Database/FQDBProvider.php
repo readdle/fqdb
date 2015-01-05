@@ -63,7 +63,7 @@ class FQDBProvider {
         if ($my['database'] == '')
             throw new FQDBException("no database specified in config or argument", FQDBException::FQDB_PROVIDER_CODE);
 
-        return new FQDB("mysql:host=localhost;dbname={$my['database']};charset=utf8", $my['user'], $my['password']);
+        return new FQDB("mysql:host=localhost;dbname={$my['database']};charset=utf8mb4", $my['user'], $my['password']);
     }
 
 
@@ -75,7 +75,7 @@ class FQDBProvider {
      * @return FQDB instance
      */
     public static function dbWithMySQLHostUserPasswordDatabase($host, $user, $password, $database) {
-        return new FQDB("mysql:host={$host};dbname={$database};charset=utf8", $user, $password);
+        return new FQDB("mysql:host={$host};dbname={$database};charset=utf8mb4", $user, $password);
     }
 
 
