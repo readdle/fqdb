@@ -88,8 +88,7 @@ final class FQDB implements \Serializable
         if ($this->_beforeDeleteHandler !== null)
             call_user_func_array($this->_beforeDeleteHandler, [$query, $params]);
 
-        $statement = $this->_preparePDOStatement($query);
-        $this->_executeStatement($statement, $params);
+        $statement = $this->_executeQuery($query, $params);
         return $statement->rowCount();
     }
 
@@ -106,8 +105,7 @@ final class FQDB implements \Serializable
         if ($this->_beforeUpdateHandler !== null)
             call_user_func_array($this->_beforeUpdateHandler, [$query, $params]);
 
-        $statement = $this->_preparePDOStatement($query);
-        $this->_executeStatement($statement, $params);
+        $statement = $this->_executeQuery($query, $params);
         return $statement->rowCount();
     }
 
@@ -120,8 +118,7 @@ final class FQDB implements \Serializable
     public function insert($query, $params = array())
     {
         $this->_testQueryStarts($query, 'insert');
-        $statement = $this->_preparePDOStatement($query);
-        return $this->_executeStatement($statement, $params, true);
+        return $this->_executeQuery($query, $params, true);
     }
 
 
@@ -177,8 +174,7 @@ final class FQDB implements \Serializable
         if ($prefix !== '')
             $this->_testQueryStarts($sqlQuery, $prefix);
 
-        $statement = $this->_preparePDOStatement($sqlQuery);
-        $this->_executeStatement($statement, $params);
+        $statement = $this->_executeQuery($sqlQuery, $params);
         return $statement->rowCount();
     }
 
@@ -385,23 +381,6 @@ final class FQDB implements \Serializable
         }
     }
 
-
-
-    /**
-     * prepares \PDO query
-     * @param string $query
-     * @return \PDOStatement PDO statement from query
-     */
-    private function _preparePDOStatement($query)
-    {
-        try {
-            return $this->_pdo->prepare($query);
-        } catch (\PDOException $e) {
-            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
-        }
-        return null;
-    }
-
     /**
      * executes prepared \PDO query
      * @param string $query
@@ -411,8 +390,7 @@ final class FQDB implements \Serializable
     private function _runQuery($query, $options)
     {
         $this->_testQueryStarts($query, '[select|show]');
-        $statement = $this->_preparePDOStatement($query);
-        $this->_executeStatement($statement, $options);
+        $statement = $this->_executeQuery($query, $options);
         return $statement;
     }
 
@@ -461,17 +439,17 @@ final class FQDB implements \Serializable
 
     /**
      * executes prepared \PDO query
-     * @param \PDOStatement $statement PDO Statement
+     * @param  string $sqlQueryString
      * @param array $options placeholders values
-     * @param bool $needsLastInsertId should _executeStatement return lastInsertId
-     * @return int last insert id or 0
+     * @param bool $needsLastInsertId should _executeQuery return lastInsertId
+     * @return int|\PDOStatement|string
      */
-    private function _executeStatement($statement, $options, $needsLastInsertId = false)
+    private function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false)
     {
-        $sqlQueryString = $statement->queryString;
-        $lastInsertId = 0;
-
         try {
+            $lastInsertId = 0;
+            $statement = $this->_pdo->prepare($sqlQueryString);
+
             $this->_preExecuteOptionsCheck($sqlQueryString, $options);
 
             // warning! it is important to pass $value by reference here, since
@@ -490,7 +468,7 @@ final class FQDB implements \Serializable
                 $lastInsertId = $this->_pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
 
         } catch (\PDOException $e) {
-            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
+            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e, [$sqlQueryString, $options]);
         }
 
         if ($this->_warningReporting) {
@@ -507,7 +485,7 @@ final class FQDB implements \Serializable
             }
         }
 
-        return $lastInsertId;
+        return $needsLastInsertId ? $lastInsertId : $statement;
     }
 
     /**
@@ -556,12 +534,13 @@ final class FQDB implements \Serializable
      * @param string $message error text
      * @param int $code code 0 - FQDB, 1 - PDO
      * @param \Exception $exception previous Exception
+     * @param array $context
      * @throws \Readdle\Database\FQDBException if its not
      */
-    private function _error($message, $code, $exception = null)
+    private function _error($message, $code, $exception = null, $context = [])
     {
         if (isset($this->_errorHandler)) {
-            call_user_func($this->_errorHandler, $message, $code, $exception);
+            call_user_func($this->_errorHandler, $message, $code, $exception, $context);
             trigger_error('FQDB error handler function should die() or throw another exception!', E_ERROR);
         }
         else {

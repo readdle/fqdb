@@ -24,6 +24,8 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
         $lastInsertId2 = $this->fqdb->insert("INSERT INTO test (content, data) VALUES ('test', :data)", [':data' => 'data']);
 
         $this->assertGreaterThan($lastInsertId1, $lastInsertId2);
+        $this->assertInternalType('numeric', $lastInsertId1);
+        $this->assertInternalType('numeric', $lastInsertId2);
     }
 
 
