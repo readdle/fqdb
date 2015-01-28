@@ -29,6 +29,12 @@ final class FQDB implements \Serializable
     private $_databaseServer = self::DB_DEFAULT; // for SQL specific stuff
     private $_errorHandler;
 
+    /**
+     * Like PDO::PARAMS_*
+     * Describes that passed data array is need to prepare for WHERE IN statement
+     */
+    const PARAM_FOR_IN_STATEMENT_VALUES = 101;
+
 
     /**
      * connects to DB, using params below
@@ -438,6 +444,47 @@ final class FQDB implements \Serializable
     }
 
     /**
+     * Find WHERE IN statements and converts sqlQueryString and $options
+     * to format needed for WHERE IN statement run
+     *
+     * @param $sqlQueryString
+     * @param $options placeholders values
+     * @return array queryString options
+     */
+    private function _prepareStatement($sqlQueryString, $options)
+    {
+        $statementNum = 0;
+        foreach($options as $placeholder => $value){
+            if (is_array($value)) {
+                if ($value['type'] === self::PARAM_FOR_IN_STATEMENT_VALUES) {
+                    if (!is_array($value['data'])) {
+                        $this->_error(FQDBException::WRONG_DATA_TYPE_ON_IN_STATEMENT, FQDBException::FQDB_CODE);
+                    }
+
+                    $statementNum++;
+                    $valueInStatementNum = 0;
+                    $whereInStatement = [];
+                    foreach ($value['data'] as $inStatementValue) {
+                        $valueInStatementNum++;
+                        $whereInStatement[':where_in_statement_'.$statementNum.'_'.$valueInStatementNum] = $inStatementValue;
+                    }
+
+                    $sqlQueryString = str_replace($placeholder, implode(', ', array_keys($whereInStatement)), $sqlQueryString);
+
+                    $options = array_merge($options, $whereInStatement);
+
+                    unset($options[$placeholder]);
+                }
+            }
+        }
+
+        return [
+            $sqlQueryString,
+            $options
+        ];
+    }
+
+    /**
      * executes prepared \PDO query
      * @param  string $sqlQueryString
      * @param array $options placeholders values
@@ -448,6 +495,8 @@ final class FQDB implements \Serializable
     {
         try {
             $lastInsertId = 0;
+            list($sqlQueryString, $options) = $this->_prepareStatement($sqlQueryString, $options);
+
             $statement = $this->_pdo->prepare($sqlQueryString);
 
             $this->_preExecuteOptionsCheck($sqlQueryString, $options);

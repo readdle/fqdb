@@ -371,6 +371,23 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
         $this->assertFalse($this->fqdb->getWarningReporting());
     }
 
+    public function testWhereInStatement() {
+        $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (1000, 'where_in_test', :data)", [':data' => 'data']);
+        $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (1001, 'where_in_test', :data)", [':data' => 'data']);
+        $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (1002, 'where_in_test', :data)", [':data' => 'data']);
+        $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (1003, 'where_in_test', :data)", [':data' => 'data']);
+        $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (1004, 'where_in_test', :data)", [':data' => 'data']);
+
+        $result = $this->fqdb->queryTable("SELECT * FROM test WHERE id IN (:idArray)", [
+            ':idArray' => [
+                'data' => [1000,1001,1002,1003,1004],
+                'type' => FQDB::PARAM_FOR_IN_STATEMENT_VALUES
+            ]
+        ]);
+
+        $this->assertEquals(5, count($result));
+    }
+
 
 }
 
