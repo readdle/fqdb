@@ -535,6 +535,29 @@ final class FQDB implements \Serializable
     }
 
     /**
+     * @param array $options
+     * @param \PDOStatement $statement
+     */
+    private function bindOptionsToStatement(&$options, \PDOStatement $statement) {
+
+        // warning! it is important to pass $value by reference here, since
+        // bindParam also binds parameter by reference (and the value itself is changing)
+        foreach ($options as $placeholder => &$value) {
+
+            if (is_array($value)) {
+                $this->_error(FQDBException::DEPRECATED_API, FQDBException::FQDB_CODE);
+            }
+            else if (is_object($value) && $value instanceof BaseSQLValue) {
+                $value->bind($statement, $placeholder);
+            }
+            else {
+                $statement->bindParam($placeholder, $value);
+            }
+        }
+
+    }
+
+    /**
      * executes prepared \PDO query
      * @param  string $sqlQueryString
      * @param array $options placeholders values
@@ -550,20 +573,7 @@ final class FQDB implements \Serializable
 
             $this->_preExecuteOptionsCheck($sqlQueryString, $options);
 
-            // warning! it is important to pass $value by reference here, since
-            // bindParam also binds parameter by reference (and the value itself is changing)
-            foreach ($options as $placeholder => &$value) {
-
-                if (is_array($value)) {
-                    $this->_error(FQDBException::DEPRECATED_API, FQDBException::FQDB_CODE);
-                }
-                else if (is_object($value) && $value instanceof BaseSQLValue) {
-                    $value->bind($statement, $placeholder);
-                }
-                else {
-                    $statement->bindParam($placeholder, $value);
-                }
-            }
+            $this->bindOptionsToStatement($options, $statement);
 
             $statement->execute(); //options are already bound to query
 
