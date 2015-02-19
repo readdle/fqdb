@@ -84,7 +84,7 @@ final class FQDB implements \Serializable
      * @param string $query
      * @param array $params
      * @param string $sqlPrefix
-     * @param callable $handler
+     * @param callable|null $handler
      * @return int affected rows count
      */
     private function doDeleteOrUpdate($query, $params, $sqlPrefix, $handler)
@@ -125,7 +125,7 @@ final class FQDB implements \Serializable
      * executes INSERT query with placeholders in 2nd param
      * @param string $query
      * @param array $params
-     * @return int last inserted id
+     * @return string last inserted id
      */
     public function insert($query, $params = array())
     {
@@ -163,7 +163,7 @@ final class FQDB implements \Serializable
      * executes REPLACE query with placeholders in 2nd param
      * @param string $query
      * @param array $params
-     * @return int affected rows count
+     * @return string affected rows count
      */
     public function replace($query, $params = array())
     {
@@ -500,13 +500,10 @@ final class FQDB implements \Serializable
      * @param  string $sqlQueryString
      * @param array $options placeholders values
      * @param bool $needsLastInsertId should _executeQuery return lastInsertId
-     * @return int|\PDOStatement|string
+     * @return \PDOStatement|string
      */
     private function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false)
     {
-        $lastInsertId = 0;
-        $statement = false;
-
         try {
             list($sqlQueryString, $options) = $this->_prepareStatement($sqlQueryString, $options);
 
@@ -536,6 +533,7 @@ final class FQDB implements \Serializable
 
         } catch (\PDOException $e) {
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e, [$sqlQueryString, $options]);
+            return 0; // for static analysis
         }
 
         if ($this->_warningReporting) {
