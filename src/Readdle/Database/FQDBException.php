@@ -17,6 +17,8 @@ final class FQDBException extends \RuntimeException
     const PLACEHOLDERS_ERROR              = 'Placeholders not set properly';
     const IDENTIFIER_QUOTE_ERROR          = 'Could not quote identifier: contains quote character';
     const WRONG_DATA_TYPE_ON_IN_STATEMENT = 'Data must be array if you use FQDB::PARAM_IN_STATEMENT_VALUES param type';
+    const INTERNAL_ASSERTION_FAIL         = 'FQDB Constistency Error';
+    const DEPRECATED_API                  = 'FQDB Deprecated Functionality';
 
 
 
