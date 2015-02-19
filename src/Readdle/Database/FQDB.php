@@ -196,7 +196,7 @@ final class FQDB implements \Serializable
      * @param string $query
      * @param array $options
      * @param callable $fetcher
-     * @param bool $returnFirst
+     * @param bool $returnArray
      * @return array|string|false
      */
     private function queryOrFalse($query, $options, $fetcher, $returnArray = true) {
