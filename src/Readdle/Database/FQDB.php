@@ -163,7 +163,7 @@ final class FQDB implements \Serializable
      * executes REPLACE query with placeholders in 2nd param
      * @param string $query
      * @param array $params
-     * @return string affected rows count
+     * @return integer affected rows count
      */
     public function replace($query, $params = array())
     {
@@ -313,7 +313,7 @@ final class FQDB implements \Serializable
      * @param string $query
      * @param array $options
      * @param callable $callback
-     * @return true
+     * @return boolean
      */
     public function queryTableCallback($query, $options = [], $callback)
     {
@@ -458,7 +458,7 @@ final class FQDB implements \Serializable
      * Find WHERE IN statements and converts sqlQueryString and $options
      * to format needed for WHERE IN statement run
      *
-     * @param $sqlQueryString
+     * @param string $sqlQueryString
      * @param $options placeholders values
      * @return array queryString options
      */
@@ -614,6 +614,9 @@ final class FQDB implements \Serializable
     }
 
 
+    /**
+     * @param callable $func
+     */
     private function _callable($func) {
         if (is_callable($func)) {
             return $func;
