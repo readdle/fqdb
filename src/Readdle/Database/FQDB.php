@@ -514,6 +514,27 @@ final class FQDB implements \Serializable
     }
 
     /**
+     * @param string $sqlQueryString
+     * @param array $options
+     */
+    private function reportWarnings($sqlQueryString, $options) {
+
+        if ($this->_warningReporting) {
+            $warningMessage = $this->_getWarnings($sqlQueryString, $options);
+
+            if (!empty($warningMessage)) {
+
+                if (isset($this->_warningHandler)) {
+                    call_user_func($this->_warningHandler, $warningMessage);
+                } else {
+                    trigger_error($warningMessage, E_USER_WARNING); // default warning handler
+                }
+
+            }
+        }
+    }
+
+    /**
      * executes prepared \PDO query
      * @param  string $sqlQueryString
      * @param array $options placeholders values
@@ -554,19 +575,7 @@ final class FQDB implements \Serializable
             return 0; // for static analysis
         }
 
-        if ($this->_warningReporting) {
-            $warningMessage = $this->_getWarnings($sqlQueryString, $options);
-
-            if (!empty($warningMessage)) {
-
-                if (isset($this->_warningHandler)) {
-                    call_user_func($this->_warningHandler, $warningMessage);
-                } else {
-                    trigger_error($warningMessage, E_USER_WARNING); // default warning handler
-                }
-
-            }
-        }
+        $this->reportWarnings($sqlQueryString, $options);
 
         return isset($lastInsertId) ? $lastInsertId : $statement;
     }
