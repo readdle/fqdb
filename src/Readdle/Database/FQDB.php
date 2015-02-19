@@ -190,6 +190,29 @@ final class FQDB implements \Serializable
         return $statement->rowCount();
     }
 
+
+    /**
+     * executes SELECT or SHOW query and returns result
+     * @param string $query
+     * @param array $options
+     * @param callable $fetcher
+     * @param bool $returnFirst
+     * @return array|string|false
+     */
+    private function queryOrFalse($query, $options, $fetcher, $returnArray = true) {
+        $statement = $this->_runQuery($query, $options);
+
+        $result = call_user_func($fetcher, $statement);
+
+        if (!is_array($result) || count($result) == 0) {
+            return false;
+        }
+        else {
+            return $returnArray ? $result : reset($result);
+        }
+    }
+
+
     /**
      * executes SELECT or SHOW query and returns 1st returned element
      * @param string $query
@@ -198,13 +221,9 @@ final class FQDB implements \Serializable
      */
     public function queryValue($query, $options = array())
     {
-        $statement = $this->_runQuery($query, $options);
-        $result = $statement->fetch(\PDO::FETCH_NUM);
-
-        if (is_array($result))
-            return $result[0];
-        else
-            return false;
+        return $this->queryOrFalse($query, $options,
+                                   function(\PDOStatement $statement) { return $statement->fetch(\PDO::FETCH_NUM); },
+                                   false);
     }
 
     /**
@@ -231,6 +250,8 @@ final class FQDB implements \Serializable
         return $statement->fetch(\PDO::FETCH_NUM);
     }
 
+
+
     /**
      * executes SELECT or SHOW query and returns result as array
      * @param string $query
@@ -239,13 +260,11 @@ final class FQDB implements \Serializable
      */
     public function queryVector($query, $options = array())
     {
-        $statement = $this->_runQuery($query, $options);
-        $result = $statement->fetchAll(\PDO::FETCH_COLUMN, 0);
+        return $this->queryOrFalse($query, $options,
+            function(\PDOStatement $statement) { return $statement->fetchAll(\PDO::FETCH_COLUMN, 0); },
+            true
+        );
 
-        if (count($result) == 0)
-            return false;
-        else
-            return $result;
     }
 
     /**
@@ -256,12 +275,10 @@ final class FQDB implements \Serializable
      */
     public function queryTable($query, $options = array())
     {
-        $statement = $this->_runQuery($query, $options);
-        $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
-        if (count($result) == 0)
-            return false;
-        else
-            return $result;
+        return $this->queryOrFalse($query, $options,
+            function(\PDOStatement $statement) { return $statement->fetchAll(\PDO::FETCH_ASSOC); },
+            true
+        );
     }
 
     /**
@@ -278,12 +295,13 @@ final class FQDB implements \Serializable
             $this->_error(FQDBException::CLASS_NOT_EXIST, FQDBException::FQDB_CODE);
         }
 
-        $statement = $this->_runQuery($query, $options);
-        $result = $statement->fetchAll(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $className, $classConstructorArguments);
-        if (count($result) == 0)
-            return false;
-        else
-            return $result;
+        return $this->queryOrFalse($query, $options,
+            function(\PDOStatement $statement) use ($className, $classConstructorArguments) {
+                return $statement->fetchAll(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE,
+                                            $className, $classConstructorArguments);
+            },
+            true
+        );
     }
 
 
@@ -550,7 +568,7 @@ final class FQDB implements \Serializable
             }
         }
 
-        return $needsLastInsertId ? $lastInsertId : $statement;
+        return isset($lastInsertId) ? $lastInsertId : $statement;
     }
 
     /**
