@@ -378,16 +378,35 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
         $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (1003, 'where_in_test', :data)", [':data' => 'data']);
         $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (1004, 'where_in_test', :data)", [':data' => 'data']);
 
-        $result = $this->fqdb->queryTable("SELECT * FROM test WHERE id IN (:idArray)", [
-            ':idArray' => [
-                'data' => [1000,1001,1002,1003,1004],
-                'type' => FQDB::PARAM_FOR_IN_STATEMENT_VALUES
-            ]
-        ]);
+        $result = $this->fqdb->queryTable("SELECT * FROM test WHERE id IN (:idArray)",
+            [':idArray' =>  new \Readdle\Database\SQLArgs(1000, 1001, 1002, 1003, 1004)]
+        );
 
         $this->assertEquals(5, count($result));
+
+        $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (NULL, 'where_in_test', :data)", [':data' => 'data']);
+        $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (NULL, 'where_in_test', :data)", [':data' => 'data']);
+
+
+        $result = $this->fqdb->queryTable("SELECT * FROM test WHERE id IN (:idArray)",
+            [':idArray' =>  new \Readdle\Database\SQLArgs(null)]
+        );
+
+        $this->assertEquals(1, count($result));
     }
 
+    public function testBlobInsert() {
+        $blobData = chr(7).'test'.chr(0);
+
+        $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (1000, 'where_in_test', :data)",
+            [':data' => new \Readdle\Database\SQLValueBlob($blobData)]
+        );
+
+        $blob = $this->fqdb->queryValue("SELECT `data` FROM test WHERE id=1000");
+
+        $this->assertEquals($blobData, $blob);
+
+    }
 
 }
 

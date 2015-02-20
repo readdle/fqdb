@@ -42,9 +42,8 @@ final class FQDB implements \Serializable
      * @param string $username
      * @param string $password
      * @param array $driver_options
-     * @return \Readdle\Database\FQDB
      */
-    function __construct($dsn, $username = '', $password = '', $driver_options = array())
+    public function __construct($dsn, $username = '', $password = '', $driver_options = array())
     {
         try {
             $this->_pdo = new \PDO($dsn, $username, $password, $driver_options);
@@ -54,7 +53,6 @@ final class FQDB implements \Serializable
                 $this->_databaseServer = self::DB_SQLITE;
 
             $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            return $this;
         } catch (\PDOException $e) {
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
             trigger_error('FQDB Fatal', E_ERROR);
@@ -82,6 +80,26 @@ final class FQDB implements \Serializable
 
 
     /**
+     * code for delete / update
+     * @param string $query
+     * @param array $params
+     * @param string $sqlPrefix
+     * @param callable|null $handler
+     * @return int affected rows count
+     */
+    private function doDeleteOrUpdate($query, $params, $sqlPrefix, $handler)
+    {
+        $this->_testQueryStarts($query, $sqlPrefix);
+
+        if ($handler !== null)
+            call_user_func_array($handler, [$query, $params]);
+
+        $statement = $this->_executeQuery($query, $params);
+        return $statement->rowCount();
+    }
+
+
+    /**
      * executes DELETE query with placeholders in 2nd param
      * @param string $query
      * @param array $params
@@ -89,13 +107,7 @@ final class FQDB implements \Serializable
      */
     public function delete($query, $params = array())
     {
-        $this->_testQueryStarts($query, 'delete');
-
-        if ($this->_beforeDeleteHandler !== null)
-            call_user_func_array($this->_beforeDeleteHandler, [$query, $params]);
-
-        $statement = $this->_executeQuery($query, $params);
-        return $statement->rowCount();
+        return $this->doDeleteOrUpdate($query, $params, 'delete', $this->_beforeDeleteHandler);
     }
 
     /**
@@ -106,20 +118,14 @@ final class FQDB implements \Serializable
      */
     public function update($query, $params = array())
     {
-        $this->_testQueryStarts($query, 'update');
-
-        if ($this->_beforeUpdateHandler !== null)
-            call_user_func_array($this->_beforeUpdateHandler, [$query, $params]);
-
-        $statement = $this->_executeQuery($query, $params);
-        return $statement->rowCount();
+        return $this->doDeleteOrUpdate($query, $params, 'update', $this->_beforeUpdateHandler);
     }
 
     /**
      * executes INSERT query with placeholders in 2nd param
      * @param string $query
      * @param array $params
-     * @return int last inserted id
+     * @return string last inserted id
      */
     public function insert($query, $params = array())
     {
@@ -157,7 +163,7 @@ final class FQDB implements \Serializable
      * executes REPLACE query with placeholders in 2nd param
      * @param string $query
      * @param array $params
-     * @return int affected rows count
+     * @return integer affected rows count
      */
     public function replace($query, $params = array())
     {
@@ -184,6 +190,29 @@ final class FQDB implements \Serializable
         return $statement->rowCount();
     }
 
+
+    /**
+     * executes SELECT or SHOW query and returns result
+     * @param string $query
+     * @param array $options
+     * @param callable $fetcher
+     * @param bool $returnArray
+     * @return array|string|false
+     */
+    private function queryOrFalse($query, $options, $fetcher, $returnArray = true) {
+        $statement = $this->_runQuery($query, $options);
+
+        $result = call_user_func($fetcher, $statement);
+
+        if (!is_array($result) || count($result) == 0) {
+            return false;
+        }
+        else {
+            return $returnArray ? $result : reset($result);
+        }
+    }
+
+
     /**
      * executes SELECT or SHOW query and returns 1st returned element
      * @param string $query
@@ -192,13 +221,9 @@ final class FQDB implements \Serializable
      */
     public function queryValue($query, $options = array())
     {
-        $statement = $this->_runQuery($query, $options);
-        $result = $statement->fetch(\PDO::FETCH_NUM);
-
-        if (is_array($result))
-            return $result[0];
-        else
-            return false;
+        return $this->queryOrFalse($query, $options,
+                                   function(\PDOStatement $statement) { return $statement->fetch(\PDO::FETCH_NUM); },
+                                   false);
     }
 
     /**
@@ -225,6 +250,8 @@ final class FQDB implements \Serializable
         return $statement->fetch(\PDO::FETCH_NUM);
     }
 
+
+
     /**
      * executes SELECT or SHOW query and returns result as array
      * @param string $query
@@ -233,13 +260,11 @@ final class FQDB implements \Serializable
      */
     public function queryVector($query, $options = array())
     {
-        $statement = $this->_runQuery($query, $options);
-        $result = $statement->fetchAll(\PDO::FETCH_COLUMN, 0);
+        return $this->queryOrFalse($query, $options,
+            function(\PDOStatement $statement) { return $statement->fetchAll(\PDO::FETCH_COLUMN, 0); },
+            true
+        );
 
-        if (count($result) == 0)
-            return false;
-        else
-            return $result;
     }
 
     /**
@@ -250,12 +275,10 @@ final class FQDB implements \Serializable
      */
     public function queryTable($query, $options = array())
     {
-        $statement = $this->_runQuery($query, $options);
-        $result = $statement->fetchAll(\PDO::FETCH_ASSOC);
-        if (count($result) == 0)
-            return false;
-        else
-            return $result;
+        return $this->queryOrFalse($query, $options,
+            function(\PDOStatement $statement) { return $statement->fetchAll(\PDO::FETCH_ASSOC); },
+            true
+        );
     }
 
     /**
@@ -272,12 +295,13 @@ final class FQDB implements \Serializable
             $this->_error(FQDBException::CLASS_NOT_EXIST, FQDBException::FQDB_CODE);
         }
 
-        $statement = $this->_runQuery($query, $options);
-        $result = $statement->fetchAll(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, $className, $classConstructorArguments);
-        if (count($result) == 0)
-            return false;
-        else
-            return $result;
+        return $this->queryOrFalse($query, $options,
+            function(\PDOStatement $statement) use ($className, $classConstructorArguments) {
+                return $statement->fetchAll(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE,
+                                            $className, $classConstructorArguments);
+            },
+            true
+        );
     }
 
 
@@ -307,7 +331,7 @@ final class FQDB implements \Serializable
      * @param string $query
      * @param array $options
      * @param callable $callback
-     * @return true
+     * @return boolean
      */
     public function queryTableCallback($query, $options = [], $callback)
     {
@@ -397,7 +421,12 @@ final class FQDB implements \Serializable
     {
         $this->_testQueryStarts($query, '[select|show]');
         $statement = $this->_executeQuery($query, $options);
-        return $statement;
+        if (is_object($statement) && $statement instanceof \PDOStatement) {
+            return $statement;
+        }
+        else {
+            $this->_error(FQDBException::INTERNAL_ASSERTION_FAIL, FQDBException::FQDB_CODE);
+        }
     }
 
 
@@ -447,34 +476,34 @@ final class FQDB implements \Serializable
      * Find WHERE IN statements and converts sqlQueryString and $options
      * to format needed for WHERE IN statement run
      *
-     * @param $sqlQueryString
+     * @param string $sqlQueryString
      * @param $options placeholders values
      * @return array queryString options
      */
     private function _prepareStatement($sqlQueryString, $options)
     {
         $statementNum = 0;
-        foreach($options as $placeholder => $value){
-            if (is_array($value)) {
-                if ($value['type'] === self::PARAM_FOR_IN_STATEMENT_VALUES) {
-                    if (!is_array($value['data'])) {
-                        $this->_error(FQDBException::WRONG_DATA_TYPE_ON_IN_STATEMENT, FQDBException::FQDB_CODE);
-                    }
+        foreach($options as $placeholder => $value) {
+            if (is_object($value) && $value instanceof SQLArgs) {
+                $args = $value->toArray();
 
-                    $statementNum++;
-                    $valueInStatementNum = 0;
-                    $whereInStatement = [];
-                    foreach ($value['data'] as $inStatementValue) {
-                        $valueInStatementNum++;
-                        $whereInStatement[':where_in_statement_'.$statementNum.'_'.$valueInStatementNum] = $inStatementValue;
-                    }
-
-                    $sqlQueryString = str_replace($placeholder, implode(', ', array_keys($whereInStatement)), $sqlQueryString);
-
-                    $options = array_merge($options, $whereInStatement);
-
-                    unset($options[$placeholder]);
+                if (!is_array($args)) {
+                    $this->_error(FQDBException::INTERNAL_ASSERTION_FAIL, FQDBException::FQDB_CODE);
                 }
+
+                $statementNum++;
+                $valueInStatementNum = 0;
+                $whereInStatement = [];
+                foreach ($args as $inStatementValue) {
+                    $valueInStatementNum++;
+                    $whereInStatement[':where_in_statement_'.$statementNum.'_'.$valueInStatementNum] = $inStatementValue;
+                }
+
+                $sqlQueryString = str_replace($placeholder, implode(', ', array_keys($whereInStatement)), $sqlQueryString);
+
+                $options = array_merge($options, $whereInStatement);
+
+                unset($options[$placeholder]);
             }
         }
 
@@ -485,40 +514,10 @@ final class FQDB implements \Serializable
     }
 
     /**
-     * executes prepared \PDO query
-     * @param  string $sqlQueryString
-     * @param array $options placeholders values
-     * @param bool $needsLastInsertId should _executeQuery return lastInsertId
-     * @return int|\PDOStatement|string
+     * @param string $sqlQueryString
+     * @param array $options
      */
-    private function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false)
-    {
-        try {
-            $lastInsertId = 0;
-            list($sqlQueryString, $options) = $this->_prepareStatement($sqlQueryString, $options);
-
-            $statement = $this->_pdo->prepare($sqlQueryString);
-
-            $this->_preExecuteOptionsCheck($sqlQueryString, $options);
-
-            // warning! it is important to pass $value by reference here, since
-            // bindParam also binds parameter by reference (and the value itself is changing)
-            foreach ($options as $placeholder => &$value) {
-                if (is_array($value)) {
-                    $statement->bindParam($placeholder, $value['data'], $value['type']);
-                } else {
-                    $statement->bindParam($placeholder, $value);
-                }
-            }
-
-            $statement->execute(); //options are already bound to query
-
-            if ($needsLastInsertId)
-                $lastInsertId = $this->_pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
-
-        } catch (\PDOException $e) {
-            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e, [$sqlQueryString, $options]);
-        }
+    private function reportWarnings($sqlQueryString, $options) {
 
         if ($this->_warningReporting) {
             $warningMessage = $this->_getWarnings($sqlQueryString, $options);
@@ -533,8 +532,62 @@ final class FQDB implements \Serializable
 
             }
         }
+    }
 
-        return $needsLastInsertId ? $lastInsertId : $statement;
+    /**
+     * @param array $options
+     * @param \PDOStatement $statement
+     */
+    private function bindOptionsToStatement(&$options, \PDOStatement $statement) {
+
+        // warning! it is important to pass $value by reference here, since
+        // bindParam also binds parameter by reference (and the value itself is changing)
+        foreach ($options as $placeholder => &$value) {
+
+            if (is_array($value)) {
+                $this->_error(FQDBException::DEPRECATED_API, FQDBException::FQDB_CODE);
+            }
+            else if (is_object($value) && $value instanceof BaseSQLValue) {
+                $value->bind($statement, $placeholder);
+            }
+            else {
+                $statement->bindParam($placeholder, $value);
+            }
+        }
+
+    }
+
+    /**
+     * executes prepared \PDO query
+     * @param  string $sqlQueryString
+     * @param array $options placeholders values
+     * @param bool $needsLastInsertId should _executeQuery return lastInsertId
+     * @return \PDOStatement|string
+     */
+    private function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false)
+    {
+        try {
+            list($sqlQueryString, $options) = $this->_prepareStatement($sqlQueryString, $options);
+
+            $statement = $this->_pdo->prepare($sqlQueryString);
+
+            $this->_preExecuteOptionsCheck($sqlQueryString, $options);
+
+            $this->bindOptionsToStatement($options, $statement);
+
+            $statement->execute(); //options are already bound to query
+
+            if ($needsLastInsertId)
+                $lastInsertId = $this->_pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
+
+        } catch (\PDOException $e) {
+            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e, [$sqlQueryString, $options]);
+            return 0; // for static analysis
+        }
+
+        $this->reportWarnings($sqlQueryString, $options);
+
+        return isset($lastInsertId) ? $lastInsertId : $statement;
     }
 
     /**
@@ -598,6 +651,9 @@ final class FQDB implements \Serializable
     }
 
 
+    /**
+     * @param callable $func
+     */
     private function _callable($func) {
         if (is_callable($func)) {
             return $func;
