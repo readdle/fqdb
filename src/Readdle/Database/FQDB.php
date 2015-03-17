@@ -484,7 +484,7 @@ final class FQDB implements \Serializable
     {
         $statementNum = 0;
         foreach($options as $placeholder => $value) {
-            if (is_object($value) && $value instanceof SQLArgs) {
+            if (is_object($value) && ($value instanceof SQLArgs || $value instanceof SQLArgsArray)) {
                 $args = $value->toArray();
 
                 if (!is_array($args)) {
