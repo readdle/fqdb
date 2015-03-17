@@ -384,6 +384,12 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
         $this->assertEquals(5, count($result));
 
+        $result = $this->fqdb->queryTable("SELECT * FROM test WHERE id IN (:idArray)",
+            [':idArray' =>  new \Readdle\Database\SQLArgsArray([1000, 1001, 1002, 1003])]
+        );
+
+        $this->assertEquals(4, count($result));
+
         $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (NULL, 'where_in_test', :data)", [':data' => 'data']);
         $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (NULL, 'where_in_test', :data)", [':data' => 'data']);
 
