@@ -16,7 +16,6 @@ class SQLValueNull extends BaseSQLValue {
      * @param string $placeholder
      */
     public function bind($statement, $placeholder) {
-        $statement->bindValue($placeholder, "", \PDO::PARAM_NULL);
+        $statement->bindValue($placeholder, NULL, \PDO::PARAM_NULL);
     }
-
 }
