@@ -21,8 +21,6 @@ final class FQDBException extends \RuntimeException
     const DEPRECATED_API                  = 'FQDB Deprecated Functionality';
 
 
-
-
     public function __construct($message = "", $code, \Exception $previous = null) {
         $code_message_prefix = ['FQDB', 'PDO', 'FQDBProvider'];
         if (empty($message) && $previous != null)
