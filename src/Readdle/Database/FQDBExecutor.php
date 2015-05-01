@@ -351,6 +351,7 @@ class FQDBExecutor
      */
     protected function _testQueryStarts($query, $needle)
     {
+        $query = trim($query, " \t\n\r");
         if (!preg_match("/^$needle.*/i", $query)) {
             $this->_error(FQDBException::WRONG_QUERY, FQDBException::FQDB_CODE);
         }
