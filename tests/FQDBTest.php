@@ -414,6 +414,48 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
     }
 
+    public function testTrimmedQuery()
+    {
+        $blobData = chr(7).'test'.chr(0);
+
+        $rowId = 10001;
+
+        $this->fqdb->insert("INSERT INTO test (id, content, data) VALUES (:rowId, 'test_trimmed_query', :data)", [
+            ':data' => new \Readdle\Database\SQLValueBlob($blobData),
+            ':rowId' => $rowId
+        ]);
+
+        $blob = $this->fqdb->queryValue("SELECT `data` FROM test WHERE id=:rowId", [
+            ':rowId' => $rowId
+        ]);
+
+        $this->assertEquals($blobData, $blob);
+
+        $blob = $this->fqdb->queryValue(" SELECT `data` FROM test WHERE id=:rowId", [
+            ':rowId' => $rowId
+        ]);
+
+        $this->assertEquals($blobData, $blob);
+
+        $blob = $this->fqdb->queryValue("\tSELECT `data` FROM test WHERE id=:rowId", [
+            ':rowId' => $rowId
+        ]);
+
+        $this->assertEquals($blobData, $blob);
+
+        $blob = $this->fqdb->queryValue("\nSELECT `data` FROM test WHERE id=:rowId", [
+            ':rowId' => $rowId
+        ]);
+
+        $this->assertEquals($blobData, $blob);
+
+        $blob = $this->fqdb->queryValue("\rSELECT `data` FROM test WHERE id=:rowId", [
+            ':rowId' => $rowId
+        ]);
+
+        $this->assertEquals($blobData, $blob);
+    }
+
 }
 
 
