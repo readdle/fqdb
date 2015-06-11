@@ -183,8 +183,9 @@ class FQDBExecutor implements FQDBInterface
 
             $warnings .= "Produced Warnings:";
 
-            foreach ($sqlWarnings as $warn)
+            foreach ($sqlWarnings as $warn) {
                 $warnings .= "\n* " . $warn['Message'];
+            }
 
             return $warnings;
         }
