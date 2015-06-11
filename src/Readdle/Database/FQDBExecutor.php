@@ -2,7 +2,7 @@
 
 namespace Readdle\Database;
 
-class FQDBExecutor
+class FQDBExecutor implements FQDBInterface
 {
 
     const QUOTE_DEFAULT = 1;
@@ -17,7 +17,6 @@ class FQDBExecutor
      * @var \PDO $_pdo - PDO object
      */
     private $_pdo;
-
 
 
     private $_warningHandler;
@@ -132,8 +131,7 @@ class FQDBExecutor
      */
     public function quote($string, $mode = self::QUOTE_DEFAULT)
     {
-        if ($mode == self::QUOTE_IDENTIFIER)
-        {
+        if ($mode == self::QUOTE_IDENTIFIER) {
             // SQL ANSI default
             $quoteSymbol = '"';
 
@@ -147,12 +145,10 @@ class FQDBExecutor
                 $this->_error(FQDBException::IDENTIFIER_QUOTE_ERROR, FQDBException::FQDB_CODE);
 
             return $quoteSymbol . $string . $quoteSymbol;
-        }
-        else {
+        } else {
             return $this->_pdo->quote($string);
         }
     }
-
 
 
     /**
@@ -161,14 +157,13 @@ class FQDBExecutor
      * @param array $options options passed to query
      * @return string
      */
-    private function _getWarnings($sqlQueryString, $options=[])
+    private function _getWarnings($sqlQueryString, $options = [])
     {
         if ($this->_databaseServer === self::DB_MYSQL) {
             $stm = $this->_pdo->query('SHOW WARNINGS');
             $sqlWarnings = $stm->fetchAll(\PDO::FETCH_ASSOC);
-        }
-        else {
-            $sqlWarnings = [['Message' => 'WarningReporting not impl. for '.$this->_pdo->getAttribute(\PDO::ATTR_DRIVER_NAME)]];
+        } else {
+            $sqlWarnings = [['Message' => 'WarningReporting not impl. for ' . $this->_pdo->getAttribute(\PDO::ATTR_DRIVER_NAME)]];
         }
 
 
@@ -188,8 +183,9 @@ class FQDBExecutor
 
             $warnings .= "Produced Warnings:";
 
-            foreach($sqlWarnings as $warn)
+            foreach ($sqlWarnings as $warn) {
                 $warnings .= "\n* " . $warn['Message'];
+            }
 
             return $warnings;
         }
@@ -208,7 +204,7 @@ class FQDBExecutor
     private function _prepareStatement($sqlQueryString, $options)
     {
         $statementNum = 0;
-        foreach($options as $placeholder => $value) {
+        foreach ($options as $placeholder => $value) {
             if (is_object($value) && ($value instanceof SQLArgs || $value instanceof SQLArgsArray)) {
                 $args = $value->toArray();
 
@@ -221,7 +217,7 @@ class FQDBExecutor
                 $whereInStatement = [];
                 foreach ($args as $inStatementValue) {
                     $valueInStatementNum++;
-                    $whereInStatement[':where_in_statement_'.$statementNum.'_'.$valueInStatementNum] = $inStatementValue;
+                    $whereInStatement[':where_in_statement_' . $statementNum . '_' . $valueInStatementNum] = $inStatementValue;
                 }
 
                 $sqlQueryString = str_replace($placeholder, implode(', ', array_keys($whereInStatement)), $sqlQueryString);
@@ -242,7 +238,8 @@ class FQDBExecutor
      * @param string $sqlQueryString
      * @param array $options
      */
-    private function reportWarnings($sqlQueryString, $options) {
+    private function reportWarnings($sqlQueryString, $options)
+    {
 
         if ($this->_warningReporting) {
             $warningMessage = $this->_getWarnings($sqlQueryString, $options);
@@ -263,7 +260,8 @@ class FQDBExecutor
      * @param array $options
      * @param \PDOStatement $statement
      */
-    private function bindOptionsToStatement(&$options, \PDOStatement $statement) {
+    private function bindOptionsToStatement(&$options, \PDOStatement $statement)
+    {
 
         // warning! it is important to pass $value by reference here, since
         // bindParam also binds parameter by reference (and the value itself is changing)
@@ -271,11 +269,9 @@ class FQDBExecutor
 
             if (is_array($value)) {
                 $this->_error(FQDBException::DEPRECATED_API, FQDBException::FQDB_CODE);
-            }
-            else if (is_object($value) && $value instanceof BaseSQLValue) {
+            } else if (is_object($value) && $value instanceof BaseSQLValue) {
                 $value->bind($statement, $placeholder);
-            }
-            else {
+            } else {
                 $statement->bindParam($placeholder, $value);
             }
         }
@@ -333,9 +329,9 @@ class FQDBExecutor
                 //placeholder not set oops
 
                 $msg = FQDBException::PLACEHOLDERS_ERROR;
-                $msg .= ' '.json_encode($options);
-                $msg .= ' '.json_encode($placeholders);
-                $msg .= ' '.$sqlQueryString;
+                $msg .= ' ' . json_encode($options);
+                $msg .= ' ' . json_encode($placeholders);
+                $msg .= ' ' . $sqlQueryString;
 
                 $this->_error($msg, FQDBException::FQDB_CODE);
             }
@@ -370,8 +366,7 @@ class FQDBExecutor
         if (isset($this->_errorHandler)) {
             call_user_func($this->_errorHandler, $message, $code, $exception, $context);
             trigger_error('FQDB error handler function should die() or throw another exception!', E_ERROR);
-        }
-        else {
+        } else {
             throw new FQDBException($message, $code, $exception);
         }
     }
@@ -381,7 +376,8 @@ class FQDBExecutor
      * @param $func
      * @return null
      */
-    protected function _callable($func) {
+    protected function _callable($func)
+    {
         if (is_callable($func)) {
             return $func;
         } else {
@@ -422,7 +418,8 @@ class FQDBExecutor
     /**
      * @return bool if warning reporting is enabled (default -- no)
      */
-    public function getWarningReporting() {
+    public function getWarningReporting()
+    {
         return (bool)$this->_warningReporting;
     }
 
@@ -443,6 +440,4 @@ class FQDBExecutor
     {
         return $this->_errorHandler;
     }
-
-
 }
