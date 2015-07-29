@@ -8,28 +8,33 @@
 
 namespace Readdle\Database;
 
-
-class SQLArgs {
+class SQLArgs implements \JsonSerializable
+{
 
     private $argsArray;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->argsArray = [];
         $args = func_get_args();
 
-        foreach($args as $arg) {
+        foreach ($args as $arg) {
             if (is_null($arg)) {
                 $this->argsArray[] = new SQLValueNull();
-            }
-            else {
+            } else {
                 $this->argsArray[] = $arg;
             }
         }
 
     }
 
-    public function toArray() {
+    public function toArray()
+    {
         return $this->argsArray;
     }
 
+    public function jsonSerialize()
+    {
+        return $this->argsArray;
+    }
 }

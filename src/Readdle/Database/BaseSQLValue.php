@@ -9,14 +9,16 @@
 namespace Readdle\Database;
 
 
-abstract class BaseSQLValue {
+abstract class BaseSQLValue implements \JsonSerializable
+{
 
     /**
      * @param \PDOStatement $statement
      * @param string $placeholder
      * @throws \Exception
      */
-    public function bind($statement, $placeholder) {
+    public function bind($statement, $placeholder)
+    {
         throw new \Exception("unimplemented");
     }
 
