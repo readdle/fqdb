@@ -9,23 +9,26 @@
 namespace Readdle\Database;
 
 
-class SQLValueBlob extends BaseSQLValue {
+class SQLValueBlob extends BaseSQLValue
+{
 
 
     /**
-     * @var string $blog;
+     * @var string $blog ;
      */
     private $blob;
 
     /**
      * @param $blob string
      */
-    public function __construct($blob) {
+    public function __construct($blob)
+    {
         $this->blob = $blob;
     }
 
 
-    public function getBlob() {
+    public function getBlob()
+    {
         return $this->blob;
     }
 
@@ -33,8 +36,14 @@ class SQLValueBlob extends BaseSQLValue {
      * @param \PDOStatement $statement
      * @param string $placeholder
      */
-    public function bind($statement, $placeholder) {
+    public function bind($statement, $placeholder)
+    {
         $statement->bindParam($placeholder, $this->blob, \PDO::PARAM_LOB);
+    }
+
+    public function jsonSerialize()
+    {
+        return base64_encode($this->blob);
     }
 
 }

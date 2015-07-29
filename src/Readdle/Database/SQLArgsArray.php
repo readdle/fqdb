@@ -2,8 +2,7 @@
 
 namespace Readdle\Database;
 
-
-class SQLArgsArray
+class SQLArgsArray implements \JsonSerializable
 {
 
     private $argsArray;
@@ -23,6 +22,11 @@ class SQLArgsArray
     }
 
     public function toArray()
+    {
+        return $this->argsArray;
+    }
+
+    public function jsonSerialize()
     {
         return $this->argsArray;
     }
