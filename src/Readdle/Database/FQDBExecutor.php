@@ -13,6 +13,8 @@ class FQDBExecutor implements FQDBInterface
     const DB_MYSQL = 'mysql';
     const DB_SQLITE = 'sqlite';
 
+    const MYSQL_CONNECTION_TIMEOUT = 28790;
+
     /**
      * @var \PDO $_pdo - PDO object
      */
@@ -24,8 +26,7 @@ class FQDBExecutor implements FQDBInterface
     private $_databaseServer = self::DB_DEFAULT; // for SQL specific stuff
     private $_errorHandler;
     private $_connectData = [];
-    private $_lastQueryTime;
-    private $_reconnectTimeout = 28800; // 8 hours is default value
+    private $_lastCheckTime;
 
     /**
      * Like PDO::PARAMS_*
@@ -84,34 +85,28 @@ class FQDBExecutor implements FQDBInterface
 
     /**
      * starts transaction
-     * @param bool $isRetry
      */
-    public function beginTransaction($isRetry = false)
+    public function beginTransaction()
     {
         try {
+            $this->checkConnection();
             $this->_pdo->beginTransaction();
+            $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
-            if($this->canRetry($e, $isRetry)) {
-                $this->beginTransaction(true);
-                return;
-            }
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
     }
 
     /**
      * commits transaction
-     * @param bool $isRetry
      */
-    public function commitTransaction($isRetry = false)
+    public function commitTransaction()
     {
         try {
+            $this->checkConnection();
             $this->_pdo->commit();
+            $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
-            if($this->canRetry($e, $isRetry)) {
-                $this->commitTransaction(true);
-                return;
-            }
             $this->rollbackTransaction();
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
@@ -120,15 +115,13 @@ class FQDBExecutor implements FQDBInterface
     /**
      * rollbacks transaction
      */
-    public function rollbackTransaction($isRetry = false)
+    public function rollbackTransaction()
     {
         try {
+            $this->checkConnection();
             $this->_pdo->rollBack();
+            $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
-            if($this->canRetry($e, $isRetry)) {
-                $this->rollbackTransaction(true);
-                return;
-            }
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
     }
@@ -173,13 +166,11 @@ class FQDBExecutor implements FQDBInterface
                 $this->_databaseServer = self::DB_SQLITE;
 
             $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            $this->_lastQueryTime = time();
+            $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
             trigger_error('FQDB Fatal', E_ERROR);
         }
-
-        $this->detectReconectTimeout();
     }
 
     /**
@@ -187,24 +178,14 @@ class FQDBExecutor implements FQDBInterface
      */
     private function checkConnection()
     {
-        $interval = (time() - (int)$this->_lastQueryTime) + 10; // 10 seconds safety interval
-
-        if ($interval >= $this->_reconnectTimeout) {
-            $this->connect();
+        if ($this->_databaseServer !== self::DB_MYSQL) {
+            return;
         }
-    }
 
-    /**
-     * load timeout value from DB variables
-     */
-    private function detectReconectTimeout()
-    {
-        $rows = $this->_pdo->query("SHOW VARIABLES WHERE Variable_name = 'wait_timeout' OR Variable_name = 'interactive_timeout'")->fetchAll(\PDO::FETCH_ASSOC);
+        $interval = (time() - (int)$this->_lastCheckTime);
 
-        foreach ($rows as $row) {
-            if ($row['Value'] < $this->_reconnectTimeout) {
-                $this->_reconnectTimeout = $row['Value'];
-            }
+        if ($interval >= self::MYSQL_CONNECTION_TIMEOUT) {
+            $this->connect();
         }
     }
 
@@ -255,7 +236,7 @@ class FQDBExecutor implements FQDBInterface
      * to format needed for WHERE IN statement run
      *
      * @param string $sqlQueryString
-     * @param $options placeholders values
+     * @param array $options placeholders values
      * @return array queryString options
      */
     private function _prepareStatement($sqlQueryString, $options)
@@ -340,10 +321,9 @@ class FQDBExecutor implements FQDBInterface
      * @param $sqlQueryString
      * @param $options
      * @param bool $needsLastInsertId
-     * @param bool $isRetry
      * @return int|\PDOStatement|string
      */
-    protected function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false, $isRetry = false)
+    protected function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false)
     {
         try {
             $this->checkConnection();
@@ -358,16 +338,12 @@ class FQDBExecutor implements FQDBInterface
 
             $statement->execute(); //options are already bound to query
 
-            $this->_lastQueryTime = time();
+            $this->_lastCheckTime = time();
 
             if ($needsLastInsertId)
                 $lastInsertId = $this->_pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
 
         } catch (\PDOException $e) {
-            if($this->canRetry($e, $isRetry)) {
-                return $this->_executeQuery($sqlQueryString, $options, $needsLastInsertId, true);
-            }
-
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e, [$sqlQueryString, $options]);
             return 0; // for static analysis
         }
@@ -375,14 +351,6 @@ class FQDBExecutor implements FQDBInterface
         $this->reportWarnings($sqlQueryString, $options);
 
         return isset($lastInsertId) ? $lastInsertId : $statement;
-    }
-
-    private function canRetry($e, $isRetry) {
-        if (strpos($e->getMessage(), 'server has gone away') && !$isRetry) {
-            $this->connect(); // try to reconnect once if server has gone away
-            return true;
-        }
-        return false;
     }
 
     /**
