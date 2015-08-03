@@ -23,6 +23,9 @@ class FQDBExecutor implements FQDBInterface
     private $_warningReporting = false;
     private $_databaseServer = self::DB_DEFAULT; // for SQL specific stuff
     private $_errorHandler;
+    private $_connectData = [];
+    private $_lastQueryTime;
+    private $_reconnectTimeout = 28800; // 8 hours is default value
 
     /**
      * Like PDO::PARAMS_*
@@ -40,20 +43,13 @@ class FQDBExecutor implements FQDBInterface
      */
     public function __construct($dsn, $username = '', $password = '', $driver_options = array())
     {
-        try {
-            $this->_pdo = new \PDO($dsn, $username, $password, $driver_options);
-            if (strpos($dsn, 'mysql') !== false)
-                $this->_databaseServer = self::DB_MYSQL;
-            else if (strpos($dsn, 'sqlite') !== false)
-                $this->_databaseServer = self::DB_SQLITE;
+        $this->_connectData['dsn'] = $dsn;
+        $this->_connectData['username'] = $username;
+        $this->_connectData['password'] = $password;
+        $this->_connectData['driver_options'] = $driver_options;
 
-            $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        } catch (\PDOException $e) {
-            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
-            trigger_error('FQDB Fatal', E_ERROR);
-        }
+        $this->connect();
     }
-
 
     /**
      * Returns raw PDO object (for sessions?)
@@ -88,24 +84,34 @@ class FQDBExecutor implements FQDBInterface
 
     /**
      * starts transaction
+     * @param bool $isRetry
      */
-    public function beginTransaction()
+    public function beginTransaction($isRetry = false)
     {
         try {
             $this->_pdo->beginTransaction();
         } catch (\PDOException $e) {
+            if($this->canRetry($e, $isRetry)) {
+                $this->beginTransaction(true);
+                return;
+            }
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
     }
 
     /**
      * commits transaction
+     * @param bool $isRetry
      */
-    public function commitTransaction()
+    public function commitTransaction($isRetry = false)
     {
         try {
             $this->_pdo->commit();
         } catch (\PDOException $e) {
+            if($this->canRetry($e, $isRetry)) {
+                $this->commitTransaction(true);
+                return;
+            }
             $this->rollbackTransaction();
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
@@ -114,11 +120,15 @@ class FQDBExecutor implements FQDBInterface
     /**
      * rollbacks transaction
      */
-    public function rollbackTransaction()
+    public function rollbackTransaction($isRetry = false)
     {
         try {
             $this->_pdo->rollBack();
         } catch (\PDOException $e) {
+            if($this->canRetry($e, $isRetry)) {
+                $this->rollbackTransaction(true);
+                return;
+            }
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
     }
@@ -150,6 +160,53 @@ class FQDBExecutor implements FQDBInterface
         }
     }
 
+    /**
+     * create PDO driver
+     */
+    public function connect()
+    {
+        try {
+            $this->_pdo = new \PDO($this->_connectData['dsn'], $this->_connectData['username'], $this->_connectData['password'], $this->_connectData['driver_options']);
+            if (strpos($this->_connectData['dsn'], 'mysql') !== false)
+                $this->_databaseServer = self::DB_MYSQL;
+            else if (strpos($this->_connectData['dsn'], 'sqlite') !== false)
+                $this->_databaseServer = self::DB_SQLITE;
+
+            $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $this->_lastQueryTime = time();
+        } catch (\PDOException $e) {
+            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
+            trigger_error('FQDB Fatal', E_ERROR);
+        }
+
+        $this->detectReconectTimeout();
+    }
+
+    /**
+     * if last query was too long time ago - reconnect
+     */
+    private function checkConnection()
+    {
+        $interval = (time() - (int)$this->_lastQueryTime) + 10; // 10 seconds safety interval
+
+        if ($interval >= $this->_reconnectTimeout) {
+            $this->connect();
+        }
+    }
+
+    /**
+     * load timeout value from DB variables
+     */
+    private function detectReconectTimeout()
+    {
+        $rows = $this->_pdo->query("SHOW VARIABLES WHERE Variable_name = 'wait_timeout' OR Variable_name = 'interactive_timeout'")->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($rows as $row) {
+            if ($row['Value'] < $this->_reconnectTimeout) {
+                $this->_reconnectTimeout = $row['Value'];
+            }
+        }
+    }
 
     /**
      * gathers Warning info from \PDO
@@ -280,14 +337,17 @@ class FQDBExecutor implements FQDBInterface
 
     /**
      * executes prepared \PDO query
-     * @param  string $sqlQueryString
-     * @param array $options placeholders values
-     * @param bool $needsLastInsertId should _executeQuery return lastInsertId
-     * @return \PDOStatement|string
+     * @param $sqlQueryString
+     * @param $options
+     * @param bool $needsLastInsertId
+     * @param bool $isRetry
+     * @return int|\PDOStatement|string
      */
-    protected function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false)
+    protected function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false, $isRetry = false)
     {
         try {
+            $this->checkConnection();
+
             list($sqlQueryString, $options) = $this->_prepareStatement($sqlQueryString, $options);
 
             $statement = $this->_pdo->prepare($sqlQueryString);
@@ -298,10 +358,16 @@ class FQDBExecutor implements FQDBInterface
 
             $statement->execute(); //options are already bound to query
 
+            $this->_lastQueryTime = time();
+
             if ($needsLastInsertId)
                 $lastInsertId = $this->_pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
 
         } catch (\PDOException $e) {
+            if($this->canRetry($e, $isRetry)) {
+                return $this->_executeQuery($sqlQueryString, $options, $needsLastInsertId, true);
+            }
+
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e, [$sqlQueryString, $options]);
             return 0; // for static analysis
         }
@@ -309,6 +375,14 @@ class FQDBExecutor implements FQDBInterface
         $this->reportWarnings($sqlQueryString, $options);
 
         return isset($lastInsertId) ? $lastInsertId : $statement;
+    }
+
+    private function canRetry($e, $isRetry) {
+        if (strpos($e->getMessage(), 'server has gone away') && !$isRetry) {
+            $this->connect(); // try to reconnect once if server has gone away
+            return true;
+        }
+        return false;
     }
 
     /**
