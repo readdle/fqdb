@@ -13,6 +13,8 @@ class FQDBExecutor implements FQDBInterface
     const DB_MYSQL = 'mysql';
     const DB_SQLITE = 'sqlite';
 
+    const MYSQL_CONNECTION_TIMEOUT = 28790;
+
     /**
      * @var \PDO $_pdo - PDO object
      */
@@ -23,6 +25,8 @@ class FQDBExecutor implements FQDBInterface
     private $_warningReporting = false;
     private $_databaseServer = self::DB_DEFAULT; // for SQL specific stuff
     private $_errorHandler;
+    private $_connectData = [];
+    private $_lastCheckTime;
 
     /**
      * Like PDO::PARAMS_*
@@ -40,20 +44,13 @@ class FQDBExecutor implements FQDBInterface
      */
     public function __construct($dsn, $username = '', $password = '', $driver_options = array())
     {
-        try {
-            $this->_pdo = new \PDO($dsn, $username, $password, $driver_options);
-            if (strpos($dsn, 'mysql') !== false)
-                $this->_databaseServer = self::DB_MYSQL;
-            else if (strpos($dsn, 'sqlite') !== false)
-                $this->_databaseServer = self::DB_SQLITE;
+        $this->_connectData['dsn'] = $dsn;
+        $this->_connectData['username'] = $username;
+        $this->_connectData['password'] = $password;
+        $this->_connectData['driver_options'] = $driver_options;
 
-            $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        } catch (\PDOException $e) {
-            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
-            trigger_error('FQDB Fatal', E_ERROR);
-        }
+        $this->connect();
     }
-
 
     /**
      * Returns raw PDO object (for sessions?)
@@ -91,8 +88,11 @@ class FQDBExecutor implements FQDBInterface
      */
     public function beginTransaction()
     {
+        $this->checkConnection();
+
         try {
             $this->_pdo->beginTransaction();
+            $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
@@ -105,6 +105,7 @@ class FQDBExecutor implements FQDBInterface
     {
         try {
             $this->_pdo->commit();
+            $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
             $this->rollbackTransaction();
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
@@ -118,6 +119,7 @@ class FQDBExecutor implements FQDBInterface
     {
         try {
             $this->_pdo->rollBack();
+            $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
         }
@@ -150,6 +152,41 @@ class FQDBExecutor implements FQDBInterface
         }
     }
 
+    /**
+     * create PDO driver
+     */
+    private function connect()
+    {
+        try {
+            $this->_pdo = new \PDO($this->_connectData['dsn'], $this->_connectData['username'], $this->_connectData['password'], $this->_connectData['driver_options']);
+            if (strpos($this->_connectData['dsn'], 'mysql') !== false)
+                $this->_databaseServer = self::DB_MYSQL;
+            else if (strpos($this->_connectData['dsn'], 'sqlite') !== false)
+                $this->_databaseServer = self::DB_SQLITE;
+
+            $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $this->_lastCheckTime = time();
+        } catch (\PDOException $e) {
+            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
+            trigger_error('FQDB Fatal', E_ERROR);
+        }
+    }
+
+    /**
+     * if last query was too long time ago - reconnect
+     */
+    private function checkConnection()
+    {
+        if ($this->_databaseServer !== self::DB_MYSQL) {
+            return;
+        }
+
+        $interval = (time() - (int)$this->_lastCheckTime);
+
+        if ($interval >= self::MYSQL_CONNECTION_TIMEOUT) {
+            $this->connect();
+        }
+    }
 
     /**
      * gathers Warning info from \PDO
@@ -198,7 +235,7 @@ class FQDBExecutor implements FQDBInterface
      * to format needed for WHERE IN statement run
      *
      * @param string $sqlQueryString
-     * @param $options placeholders values
+     * @param array $options placeholders values
      * @return array queryString options
      */
     private function _prepareStatement($sqlQueryString, $options)
@@ -280,13 +317,15 @@ class FQDBExecutor implements FQDBInterface
 
     /**
      * executes prepared \PDO query
-     * @param  string $sqlQueryString
-     * @param array $options placeholders values
-     * @param bool $needsLastInsertId should _executeQuery return lastInsertId
-     * @return \PDOStatement|string
+     * @param $sqlQueryString
+     * @param $options
+     * @param bool $needsLastInsertId
+     * @return int|\PDOStatement|string
      */
     protected function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false)
     {
+        $this->checkConnection();
+
         try {
             list($sqlQueryString, $options) = $this->_prepareStatement($sqlQueryString, $options);
 
@@ -297,6 +336,8 @@ class FQDBExecutor implements FQDBInterface
             $this->bindOptionsToStatement($options, $statement);
 
             $statement->execute(); //options are already bound to query
+
+            $this->_lastCheckTime = time();
 
             if ($needsLastInsertId)
                 $lastInsertId = $this->_pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
