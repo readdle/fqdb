@@ -88,8 +88,9 @@ class FQDBExecutor implements FQDBInterface
      */
     public function beginTransaction()
     {
+        $this->checkConnection();
+
         try {
-            $this->checkConnection();
             $this->_pdo->beginTransaction();
             $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
@@ -103,7 +104,6 @@ class FQDBExecutor implements FQDBInterface
     public function commitTransaction()
     {
         try {
-            $this->checkConnection();
             $this->_pdo->commit();
             $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
@@ -118,7 +118,6 @@ class FQDBExecutor implements FQDBInterface
     public function rollbackTransaction()
     {
         try {
-            $this->checkConnection();
             $this->_pdo->rollBack();
             $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
@@ -156,7 +155,7 @@ class FQDBExecutor implements FQDBInterface
     /**
      * create PDO driver
      */
-    public function connect()
+    private function connect()
     {
         try {
             $this->_pdo = new \PDO($this->_connectData['dsn'], $this->_connectData['username'], $this->_connectData['password'], $this->_connectData['driver_options']);
@@ -325,9 +324,9 @@ class FQDBExecutor implements FQDBInterface
      */
     protected function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false)
     {
-        try {
-            $this->checkConnection();
+        $this->checkConnection();
 
+        try {
             list($sqlQueryString, $options) = $this->_prepareStatement($sqlQueryString, $options);
 
             $statement = $this->_pdo->prepare($sqlQueryString);
