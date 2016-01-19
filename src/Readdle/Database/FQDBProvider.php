@@ -12,41 +12,55 @@ class FQDBProvider {
      * @return array - parsed key-value array of ~/.my.cnf
      * @throws FQDBException if there is no file or unable to find HOME dir
      */
-    public static function parseMyCnf() {
-
-        if (!isset($_SERVER['HOME']))
+    public static function parseMyCnf()
+    {
+        if (!isset($_SERVER['HOME'])) {
             throw new FQDBException("unable to find home dir", FQDBException::FQDB_PROVIDER_CODE);
+        }
 
-        $my_cnf_path = $_SERVER['HOME'].'/.my.cnf';
+        $my_cnf_path = $_SERVER['HOME'] . '/.my.cnf';
 
-        if (!file_exists($my_cnf_path))
+        if (!file_exists($my_cnf_path)) {
             throw new FQDBException("unable to find {$my_cnf_path}", FQDBException::FQDB_PROVIDER_CODE);
+        }
 
         $lines = file($my_cnf_path);
         $database = $user = $password = "";
+        $host = "localhost";
 
-        foreach($lines as $line) {
+        foreach ($lines as $line) {
+
             $kv = explode("=", $line);
-            if (count($kv) != 2)
+
+            if (count($kv) != 2) {
                 continue;
+            }
+
             $kv = array_map('trim', $kv);
 
-            if ($kv[0] == 'user')
-                $user = $kv[1];
-
-            if (strpos($kv[0], 'pass') == 0)
+            if (0 === strpos($kv[0], 'pass')) {
                 $password = $kv[1];
+            }
 
-            if ($kv == 'database')
+            if ($kv[0] === 'user') {
+                $user = $kv[1];
+            }
+
+            if ($kv[0] === 'database') {
                 $database = $kv[1];
+            }
+
+            if ($kv[0] === 'host') {
+                $host = $kv[1];
+            }
+
         }
 
-        if ($user == "")
+        if ($user == "") {
             throw new FQDBException("unable to find user in .my.cnf", FQDBException::FQDB_PROVIDER_CODE);
+        }
 
-
-        return compact('user', 'password', 'database');
-
+        return compact('user', 'password', 'database', 'host');
     }
 
 
@@ -57,13 +71,16 @@ class FQDBProvider {
      */
     public static function dbWithMyCnf($database='') {
         $my = static::parseMyCnf();
-        if ($database != '')
+
+        if ($database != '') {
             $my['database'] = $database;
+        }
 
-        if ($my['database'] == '')
+        if ($my['database'] == '') {
             throw new FQDBException("no database specified in config or argument", FQDBException::FQDB_PROVIDER_CODE);
+        }
 
-        return new FQDB("mysql:host=localhost;dbname={$my['database']};charset=utf8mb4", $my['user'], $my['password']);
+        return new FQDB("mysql:host={$my['host']};dbname={$my['database']};charset=utf8mb4", $my['user'], $my['password']);
     }
 
 
