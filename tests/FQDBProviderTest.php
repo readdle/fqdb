@@ -6,12 +6,26 @@ class FQDBProviderTest extends PHPUnit_Framework_TestCase {
 
     function testParseMyCnf() {
         $oldHome = $_SERVER['HOME'];
-        $_SERVER['HOME'] = __DIR__;
+        $_SERVER['HOME'] = __DIR__ . "/mycnf";
 
-        $my = FQDBProvider::parseMyCnf("test");
+        $my = FQDBProvider::parseMyCnf();
         $this->assertEquals("username", $my['user']);
         $this->assertEquals("passw0rd", $my['password']);
         $this->assertEquals('', $my['database']);
+        $this->assertEquals('localhost', $my['host']);
+
+        $_SERVER['HOME'] = $oldHome;
+    }
+
+    function testParseMyCnfWithDB() {
+        $oldHome = $_SERVER['HOME'];
+        $_SERVER['HOME'] = __DIR__ . "/mycnf-with-db";
+
+        $my = FQDBProvider::parseMyCnf();
+        $this->assertEquals("username", $my['user']);
+        $this->assertEquals("passw0rd", $my['password']);
+        $this->assertEquals('database_name', $my['database']);
+        $this->assertEquals('db.host', $my['host']);
 
         $_SERVER['HOME'] = $oldHome;
     }
