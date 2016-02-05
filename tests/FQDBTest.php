@@ -52,6 +52,9 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
         $value = $this->fqdb->queryValue("SELECT * FROM test WHERE id=1");
         $this->assertEquals('1', $value);
+
+        $value = $this->fqdb->queryValue("SELECT data, content FROM test WHERE id=1");
+        $this->assertEquals('data', $value);
     }
 
     public function testQueryList() {
