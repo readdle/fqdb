@@ -49,6 +49,12 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
         $value = $this->fqdb->queryValue("SELECT id FROM test WHERE id=1");
         $this->assertEquals('1', $value);
+
+        $value = $this->fqdb->queryValue("SELECT * FROM test WHERE id=1");
+        $this->assertEquals('1', $value);
+
+        $value = $this->fqdb->queryValue("SELECT data, content FROM test WHERE id=1");
+        $this->assertEquals('data', $value);
     }
 
     public function testQueryList() {
@@ -75,7 +81,7 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
     public function testQueryVector() {
         $noValues = $this->fqdb->queryVector("SELECT * FROM test WHERE id=100");
-        $this->assertFalse($noValues);
+        $this->assertCount(0, $noValues);
 
         $count = intval($this->fqdb->queryValue("SELECT COUNT(*) FROM test"));
         $values = $this->fqdb->queryVector("SELECT * FROM test");
@@ -85,7 +91,7 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
     public function testQueryTable() {
         $noValues = $this->fqdb->queryTable("SELECT * FROM test WHERE id=100");
-        $this->assertFalse($noValues);
+        $this->assertCount(0, $noValues);
 
         $count = intval($this->fqdb->queryValue("SELECT COUNT(*) FROM test"));
         $values = $this->fqdb->queryTable("SELECT * FROM test");
@@ -103,8 +109,20 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testQueryTableCallbackOk() {
-        $noValues = $this->fqdb->queryTableCallback("SELECT * FROM test WHERE id=:id", [':id' => 1], function($row) {return $row;});
-        $this->assertTrue($noValues);
+        $sql = "SELECT * FROM test";
+        $sqlOptions = [];
+
+        $callbackResultArray = [];
+        $resultTrue = $this->fqdb->queryTableCallback($sql, $sqlOptions,
+            function($row) use (&$callbackResultArray) {
+                $callbackResultArray[]=$row;
+                return $row;
+            }
+        );
+        $this->assertTrue($resultTrue);
+
+        $resultArray = $this->fqdb->queryTable($sql, $sqlOptions);
+        $this->assertEquals($resultArray, $callbackResultArray);
     }
 
     /**
@@ -126,7 +144,7 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
     public function testQueryObjArray() {
         $noValues = $this->fqdb->queryObjArray("SELECT * FROM test WHERE id=100", '\QueryObject');
-        $this->assertFalse($noValues);
+        $this->assertCount(0, $noValues);
 
         $count = intval($this->fqdb->queryValue("SELECT COUNT(*) FROM test"));
         $objects = $this->fqdb->queryObjArray("SELECT * FROM test", '\QueryObject');
@@ -398,7 +416,7 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
             [':idArray' =>  new \Readdle\Database\SQLArgs(null)]
         );
 
-        $this->assertEquals(1, count($result));
+        $this->assertEquals(0, count($result));
     }
 
     public function testBlobInsert() {

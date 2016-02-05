@@ -29,50 +29,25 @@ class FQDBQueryAPI extends FQDBExecutor {
      * @param string $query
      * @param array $options
      * @param callable $fetcher
-     * @return array|false
+     * @return array
      */
-    private function queryArrayOrFalse($query, $options, $fetcher) {
-        $statement = $this->_runQuery($query, $options);
-
-        $result = call_user_func($fetcher, $statement);
-
-        if (!is_array($result) || count($result) == 0) {
-            return false;
-        }
-        else {
-            return $result;
-        }
-    }
-
-    /**
-     * executes SELECT or SHOW query and returns first result
-     * @param string $query
-     * @param array $options
-     * @param callable $fetcher
-     * @return mixed|false
-     */
-    private function queryOrFalse($query, $options, $fetcher)
+    private function queryArray($query, $options, $fetcher)
     {
-        $result = $this->queryArrayOrFalse($query, $options, $fetcher);
-
-        if (false === $result) {
-            return false;
-        }
-
-        return reset($result);
+        $statement = $this->_runQuery($query, $options);
+        $result = call_user_func($fetcher, $statement);
+        return is_array($result) ? $result : [];
     }
-
 
     /**
      * executes SELECT or SHOW query and returns 1st returned element
      * @param string $query
      * @param array $options
-     * @return mixed
+     * @return string|false
      */
     public function queryValue($query, $options = array())
     {
-        return $this->queryOrFalse($query, $options,
-            function(\PDOStatement $statement) { return $statement->fetch(\PDO::FETCH_NUM); });
+        $statement = $this->_runQuery($query, $options);
+        return $statement->fetch(\PDO::FETCH_COLUMN);
     }
 
     /**
@@ -105,11 +80,11 @@ class FQDBQueryAPI extends FQDBExecutor {
      * executes SELECT or SHOW query and returns result as array
      * @param string $query
      * @param array $options
-     * @return array|false
+     * @return array
      */
     public function queryVector($query, $options = array())
     {
-        return $this->queryArrayOrFalse($query, $options,
+        return $this->queryArray($query, $options,
             function(\PDOStatement $statement) { return $statement->fetchAll(\PDO::FETCH_COLUMN, 0); });
 
     }
@@ -118,11 +93,11 @@ class FQDBQueryAPI extends FQDBExecutor {
      * executes SELECT or SHOW query and returns result as assoc array
      * @param string $query
      * @param array $options
-     * @return array|false
+     * @return array
      */
     public function queryTable($query, $options = array())
     {
-        return $this->queryArrayOrFalse($query, $options,
+        return $this->queryArray($query, $options,
             function(\PDOStatement $statement) { return $statement->fetchAll(\PDO::FETCH_ASSOC); }
         );
     }
@@ -133,7 +108,7 @@ class FQDBQueryAPI extends FQDBExecutor {
      * @param string $className
      * @param array $options
      * @param array $classConstructorArguments
-     * @return array|false
+     * @return array
      */
     public function queryObjArray($query, $className, $options = array(), $classConstructorArguments = NULL)
     {
@@ -141,7 +116,7 @@ class FQDBQueryAPI extends FQDBExecutor {
             $this->_error(FQDBException::CLASS_NOT_EXIST, FQDBException::FQDB_CODE);
         }
 
-        return $this->queryArrayOrFalse($query, $options,
+        return $this->queryArray($query, $options,
             function(\PDOStatement $statement) use ($className, $classConstructorArguments) {
                 return $statement->fetchAll(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE,
                     $className, $classConstructorArguments);
