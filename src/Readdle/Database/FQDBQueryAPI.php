@@ -56,7 +56,7 @@ class FQDBQueryAPI extends FQDBExecutor {
      * @param string $query
      * @param array $options
      * @param callable $fetcher
-     * @return array|false
+     * @return string|false
      */
     private function queryOrFalse($query, $options, $fetcher)
     {
@@ -74,7 +74,7 @@ class FQDBQueryAPI extends FQDBExecutor {
      * executes SELECT or SHOW query and returns 1st returned element
      * @param string $query
      * @param array $options
-     * @return false|string
+     * @return string|false
      */
     public function queryValue($query, $options = array())
     {
