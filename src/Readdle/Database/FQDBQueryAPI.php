@@ -29,18 +29,6 @@ class FQDBQueryAPI extends FQDBExecutor {
      * @param string $query
      * @param array $options
      * @param callable $fetcher
-     * @return array|false
-     */
-    private function queryArrayOrFalse($query, $options, $fetcher) {
-        $result = $this->queryArray($query, $options, $fetcher);
-        return 0 === count($result) ? false : $result;
-    }
-
-    /**
-     * executes SELECT or SHOW query and returns result array
-     * @param string $query
-     * @param array $options
-     * @param callable $fetcher
      * @return array
      */
     private function queryArray($query, $options, $fetcher)
@@ -50,26 +38,6 @@ class FQDBQueryAPI extends FQDBExecutor {
         return is_array($result) ? $result : [];
     }
 
-
-    /**
-     * executes SELECT or SHOW query and returns first result
-     * @param string $query
-     * @param array $options
-     * @param callable $fetcher
-     * @return string|false
-     */
-    private function queryOrFalse($query, $options, $fetcher)
-    {
-        $result = $this->queryArrayOrFalse($query, $options, $fetcher);
-
-        if (false === $result) {
-            return false;
-        }
-
-        return reset($result);
-    }
-
-
     /**
      * executes SELECT or SHOW query and returns 1st returned element
      * @param string $query
@@ -78,8 +46,8 @@ class FQDBQueryAPI extends FQDBExecutor {
      */
     public function queryValue($query, $options = array())
     {
-        return $this->queryOrFalse($query, $options,
-            function(\PDOStatement $statement) { return $statement->fetch(\PDO::FETCH_NUM); });
+        $statement = $this->_runQuery($query, $options);
+        return $statement->fetch(\PDO::FETCH_COLUMN);
     }
 
     /**
