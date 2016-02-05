@@ -32,13 +32,8 @@ class FQDBQueryAPI extends FQDBExecutor {
      * @return array|false
      */
     private function queryArrayOrFalse($query, $options, $fetcher) {
-        $statement = $this->_runQuery($query, $options);
-        $result = call_user_func($fetcher, $statement);
-
-        if (!is_array($result) || count($result) === 0) {
-            $result = false;
-        }
-        return $result;
+        $result = $this->queryArray($query, $options, $fetcher);
+        return 0 === count($result) ? false : $result;
     }
 
     /**
@@ -52,11 +47,7 @@ class FQDBQueryAPI extends FQDBExecutor {
     {
         $statement = $this->_runQuery($query, $options);
         $result = call_user_func($fetcher, $statement);
-
-        if (!is_array($result) || count($result) === 0) {
-            $result = [];
-        }
-        return $result;
+        return is_array($result) ? $result : [];
     }
 
 
