@@ -474,6 +474,33 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals($blobData, $blob);
     }
 
+    public function testQueryHash() {
+        $this->fqdb->execute(
+            "CREATE TABLE `test_hash` (
+              id INTEGER PRIMARY KEY ASC,
+              field1 TEXT,
+              field2 TEXT,
+              field3 TEXT
+            );"
+        );
+        $this->fqdb->insert("INSERT INTO test_hash (field1, field2, field3) VALUES ('first1', 'first2', 'first3')");
+        $this->fqdb->insert("INSERT INTO test_hash (field1, field2, field3) VALUES ('second1', 'second2', 'second3')");
+
+        $hash12 = $this->fqdb->queryHash("SELECT field1,field2 FROM test_hash");
+        $this->assertEquals(2,count($hash12));
+        $this->assertArrayHasKey('first1', $hash12);
+        $this->assertArrayHasKey('second1', $hash12);
+        $this->assertEquals($hash12['first1'],'first2');
+        $this->assertEquals($hash12['second1'],'second2');
+
+        $hash23 = $this->fqdb->queryHash("SELECT field2,field3 FROM test_hash");
+        $this->assertEquals(2,count($hash23));
+        $this->assertArrayHasKey('first2', $hash23);
+        $this->assertArrayHasKey('second2', $hash23);
+        $this->assertEquals($hash23['first2'],'first3');
+        $this->assertEquals($hash23['second2'],'second3');
+    }
+
 }
 
 
