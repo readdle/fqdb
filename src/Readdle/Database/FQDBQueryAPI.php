@@ -166,7 +166,7 @@ class FQDBQueryAPI extends FQDBExecutor {
     }
 
     /**
-     * executes SELECT or SHOW query and returns an array of two-columns
+     * executes SELECT or SHOW query and returns an assoc array made of two-columns
      * where the first column is a key and the second column is the value
      * @param string $query
      * @param array $options
