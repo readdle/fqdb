@@ -168,9 +168,9 @@ class FQDBQueryAPI extends FQDBExecutor {
     /**
      * executes SELECT or SHOW query and returns an assoc array made of two-columns
      * where the first column is a key and the second column is the value
-     * @param string $query
+     * @param $query
      * @param array $options
-     * @return array|false
+     * @return array
      */
     public function queryHash($query, $options = array())
     {
