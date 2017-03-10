@@ -1,7 +1,7 @@
 <?php
 
-use \Readdle\Database\FQDB;
-use \Readdle\Database\FQDBException;
+use Readdle\Database\FQDB;
+use Readdle\Database\FQDBException;
 
 class FQDBTest extends PHPUnit_Framework_TestCase {
 
