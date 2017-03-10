@@ -1,7 +1,7 @@
 <?php
 
-use Readdle\Database\FQDB;
-use Readdle\Database\FQDBException;
+use \Readdle\Database\FQDB;
+use \Readdle\Database\FQDBException;
 
 class FQDBTest extends PHPUnit_Framework_TestCase {
 
@@ -499,6 +499,31 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
         $this->assertArrayHasKey('second2', $hash23);
         $this->assertEquals($hash23['first2'],'first3');
         $this->assertEquals($hash23['second2'],'second3');
+    }
+    
+    public function testQueryTableGenerator()
+    {
+        $this->fqdb->execute(
+            "CREATE TABLE `test_querygenerator` (
+              id INTEGER PRIMARY KEY ASC,
+              somevalue VARCHAR (255)
+            );"
+        );
+        $values = ['first', 'second'];
+        foreach($values as $value) {
+            $this->fqdb->insert("INSERT INTO test_querygenerator (somevalue) VALUES (:val)", [':val'=>$value]);
+        }
+        
+        $generator = $this->fqdb->queryTableGenerator("SELECT * FROM test_querygenerator");
+        $this->assertInstanceOf('\Generator', $generator);
+        $result = [];
+        foreach ($generator as $idx => $row) {
+            $this->assertInternalType('array', $row);
+            $this->assertArrayHasKey('id', $row);
+            $this->assertArrayHasKey('somevalue', $row);
+            $result[] = $row['somevalue'];
+        }
+        $this->assertEquals($values, $result);
     }
 
 }
