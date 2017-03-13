@@ -164,6 +164,21 @@ class FQDBQueryAPI extends FQDBExecutor {
         }
         return true; //executed successfully
     }
+    
+    /**
+     * Execute a query and makes generator from the result
+     *
+     * @param       $query
+     * @param array $options
+     * @return \Generator
+     */
+    public function queryTableGenerator($query, $options = [])
+    {
+        $statement = $this->_runQuery($query, $options);
+        while ($row = $statement->fetch(\PDO::FETCH_ASSOC)) {
+            yield $row;
+        }
+    }
 
     /**
      * executes SELECT or SHOW query and returns an assoc array made of two-columns
