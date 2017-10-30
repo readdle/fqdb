@@ -3,7 +3,7 @@ fqdb
 
 Wrapper for PDO with specific DB operations and more checks. Available [via composer](https://packagist.org/packages/readdle/fqdb). 
 
-[![Build Status](https://travis-ci.org/readdle/fqdb.svg?branch=master)](https://travis-ci.org/readdle/fqdb)
+[![Latest Stable Version](https://poser.pugx.org/readdle/fqdb/v/stable)](https://packagist.org/packages/readdle/fqdb) [![Total Downloads](https://poser.pugx.org/readdle/fqdb/downloads)](https://packagist.org/packages/readdle/fqdb) [![License](https://poser.pugx.org/readdle/fqdb/license)](https://packagist.org/packages/readdle/fqdb) [![Build Status](https://travis-ci.org/readdle/fqdb.svg?branch=master)](https://travis-ci.org/readdle/fqdb)
 
 Example: 
 
