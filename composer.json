@@ -1,6 +1,6 @@
 {
     "name" : "readdle/fqdb",
-    "version": "3.0",
+    "version": "2.3",
     "license": "MIT",
     "require" : {
         "php" : ">=5.5.0",

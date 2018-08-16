@@ -97,10 +97,7 @@ class FQDBProvider {
     
     public static function dbWithDSN($dsn, $user = null, $password = null)
     {
-        $fqdb = new FQDB($dsn, $user, $password);
-        $fqdb->connect();
-        
-        return $fqdb;
+        return new FQDB($dsn, $user, $password);
     }
 
 

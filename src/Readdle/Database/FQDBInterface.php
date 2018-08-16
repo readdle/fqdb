@@ -17,6 +17,5 @@ interface FQDBInterface {
     public function getWarningReporting();
     public function setErrorHandler($func);
     public function getErrorHandler();
-    public function connect();
-    public function registerConnector(ConnectorInterface $connector);
+    public static function registerConnector(ConnectorInterface $connector);
 }

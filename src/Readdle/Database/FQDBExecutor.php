@@ -17,19 +17,18 @@ class FQDBExecutor implements FQDBInterface
     const DB_SQLITE = 'sqlite';
 
     const MYSQL_CONNECTION_TIMEOUT = 28790;
-
     /**
      * @var \PDO $_pdo - PDO object
      */
     private $_pdo;
 
 
+    private static $connectionResolver;
     private $_warningHandler;
     private $_warningReporting = false;
     private $_databaseServer = self::DB_DEFAULT; // for SQL specific stuff
     private $_errorHandler;
     private $_lastCheckTime;
-    private $connectionResolver;
     private $connectData;
 
     /**
@@ -48,18 +47,29 @@ class FQDBExecutor implements FQDBInterface
      */
     public function __construct($dsn, $username = '', $password = '', $driver_options = [])
     {
-        $this->connectionResolver = new Resolver();
         $this->connectData = [
             "dsn"            => $dsn,
             "username"       => $username,
             "password"       => $password,
             "driver_options" => $driver_options,
         ];
+        $this->connect();
     }
-
-    public function registerConnector(ConnectorInterface $connector)
+    
+    /**
+     * @return Resolver
+     */
+    private static function connectorResolver()
     {
-        $this->connectionResolver->registerConnector($connector);
+        if (self::$connectionResolver === null) {
+            self::$connectionResolver = new Resolver();
+        }
+        return self::$connectionResolver;
+    }
+    
+    public static function registerConnector(ConnectorInterface $connector)
+    {
+        self::connectorResolver()->registerConnector($connector);
     }
 
     /**
@@ -165,7 +175,7 @@ class FQDBExecutor implements FQDBInterface
     public function connect()
     {
         try {
-            $this->_pdo = $this->connectionResolver
+            $this->_pdo = self::connectorResolver()
                 ->resolve($this->connectData)
                 ->connect($this->connectData);
             

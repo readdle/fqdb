@@ -5,15 +5,14 @@ Wrapper for PDO with specific DB operations and more checks. Available [via comp
 
 [![Latest Stable Version](https://poser.pugx.org/readdle/fqdb/v/stable)](https://packagist.org/packages/readdle/fqdb) [![Total Downloads](https://poser.pugx.org/readdle/fqdb/downloads)](https://packagist.org/packages/readdle/fqdb) [![License](https://poser.pugx.org/readdle/fqdb/license)](https://packagist.org/packages/readdle/fqdb) [![Build Status](https://travis-ci.org/readdle/fqdb.svg?branch=master)](https://travis-ci.org/readdle/fqdb)
 
-Initialization:
-##### Create FQDB instance directly (requires a call of method 'connect')
+Instantiating:
+##### Create FQDB instance directly
 
 ```php
 $fqdb = new \Readdle\Database\FQDB('mysql:host=localhost;dbname=test', 'user', 'password');
-$fqdb->connect();
 ```
 
-##### Create FQDB instance via FQDBProvider (makes 'connect' call for you) **RECOMMENDED**
+##### Create FQDB instance via FQDBProvider
 ```php
 // parses ~/.my.cnf
 $fqdb = FQDBProvider::dbWithMyCnf($database); 
@@ -29,13 +28,16 @@ $fqdb = FQDBProvider::dbWithMySQLHostUserPasswordDatabase($host, $user, $passwor
 
 ```php
 $fqdb = new \Readdle\Database\FQDB('mysql:host=localhost;dbname=test', 'user', 'password');
-$fqdb->connect();
 
 $value = $fqdb->queryValue("SELECT 2+2");
 // $value == 4
 
 $hash = $fqdb->queryAssoc("SELECT id, content FROM idcontent WHERE id=13");
 // $hash = ['id' => 13, 'content'=>'...'] 
+
+// to use a custom connector you can register it before instantiating the FQDB
+\Readdle\Database\FQDB::registerConnector(\Readdle\Database\ConnectorInterface $connector);
+$fqdb = new \Readdle\Database\FQDB($optionSupportedByYourConnector);
 
 ```
 
