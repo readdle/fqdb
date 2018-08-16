@@ -1,13 +1,8 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: admin
- * Date: 6/11/15
- * Time: 5:51 PM
- */
 
 namespace Readdle\Database;
 
+use Readdle\Database\Connector\ConnectorInterface;
 
 interface FQDBInterface {
     public function execute($sqlQuery, $params, $prefix);
@@ -22,4 +17,6 @@ interface FQDBInterface {
     public function getWarningReporting();
     public function setErrorHandler($func);
     public function getErrorHandler();
+    public function connect();
+    public function registerConnector(ConnectorInterface $connector);
 }
