@@ -2,6 +2,9 @@
 
 namespace Readdle\Database;
 
+use Readdle\Database\Connector\ConnectorInterface;
+use Readdle\Database\Connector\Resolver;
+
 class FQDBExecutor implements FQDBInterface
 {
 
@@ -14,19 +17,19 @@ class FQDBExecutor implements FQDBInterface
     const DB_SQLITE = 'sqlite';
 
     const MYSQL_CONNECTION_TIMEOUT = 28790;
-
     /**
      * @var \PDO $_pdo - PDO object
      */
     private $_pdo;
 
 
+    private static $connectionResolver;
     private $_warningHandler;
     private $_warningReporting = false;
     private $_databaseServer = self::DB_DEFAULT; // for SQL specific stuff
     private $_errorHandler;
-    private $_connectData = [];
     private $_lastCheckTime;
+    private $connectData;
 
     /**
      * Like PDO::PARAMS_*
@@ -42,14 +45,31 @@ class FQDBExecutor implements FQDBInterface
      * @param string $password
      * @param array $driver_options
      */
-    public function __construct($dsn, $username = '', $password = '', $driver_options = array())
+    public function __construct($dsn, $username = '', $password = '', $driver_options = [])
     {
-        $this->_connectData['dsn'] = $dsn;
-        $this->_connectData['username'] = $username;
-        $this->_connectData['password'] = $password;
-        $this->_connectData['driver_options'] = $driver_options;
-
+        $this->connectData = [
+            "dsn"            => $dsn,
+            "username"       => $username,
+            "password"       => $password,
+            "driver_options" => $driver_options,
+        ];
         $this->connect();
+    }
+    
+    /**
+     * @return Resolver
+     */
+    private static function connectorResolver()
+    {
+        if (self::$connectionResolver === null) {
+            self::$connectionResolver = new Resolver();
+        }
+        return self::$connectionResolver;
+    }
+    
+    public static function registerConnector(ConnectorInterface $connector)
+    {
+        self::connectorResolver()->registerConnector($connector);
     }
 
     /**
@@ -152,17 +172,20 @@ class FQDBExecutor implements FQDBInterface
         }
     }
 
-    /**
-     * create PDO driver
-     */
-    private function connect()
+    public function connect()
     {
         try {
-            $this->_pdo = new \PDO($this->_connectData['dsn'], $this->_connectData['username'], $this->_connectData['password'], $this->_connectData['driver_options']);
-            if (strpos($this->_connectData['dsn'], 'mysql') !== false)
+            $this->_pdo = self::connectorResolver()
+                ->resolve($this->connectData)
+                ->connect($this->connectData);
+            
+            $driverName = $this->_pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            
+            if (strpos($driverName, 'mysql') !== false) {
                 $this->_databaseServer = self::DB_MYSQL;
-            else if (strpos($this->_connectData['dsn'], 'sqlite') !== false)
+            } elseif (strpos($driverName, 'sqlite') !== false) {
                 $this->_databaseServer = self::DB_SQLITE;
+            }
 
             $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             $this->_lastCheckTime = time();

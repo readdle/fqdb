@@ -1,5 +1,5 @@
 <?php
-use Readdle\Database\FQDB;
+
 use Readdle\Database\FQDBProvider;
 
 class FQDBProviderTest extends PHPUnit_Framework_TestCase {
@@ -32,7 +32,7 @@ class FQDBProviderTest extends PHPUnit_Framework_TestCase {
 
 
     function testSetDefault() {
-        $fqdb = new FQDB('sqlite::memory:');
+        $fqdb = FQDBProvider::dbWithDSN('sqlite::memory:');
         FQDBProvider::setDefaultFQDB($fqdb);
         $this->assertEquals($fqdb, FQDBProvider::defaultFQDB());
         FQDBProvider::setDefaultFQDB(null);
@@ -40,7 +40,7 @@ class FQDBProviderTest extends PHPUnit_Framework_TestCase {
 
 
     function testSetDefaultCallback() {
-        $fqdb = new FQDB('sqlite::memory:');
+        $fqdb = FQDBProvider::dbWithDSN('sqlite::memory:');
         FQDBProvider::setDefaultFQDBCreator(function() use ($fqdb) {
             return $fqdb;
         });
@@ -48,5 +48,4 @@ class FQDBProviderTest extends PHPUnit_Framework_TestCase {
 
         FQDBProvider::setDefaultFQDBCreator(null);
     }
-
 }

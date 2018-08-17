@@ -1,7 +1,6 @@
 <?php
 
 use Readdle\Database\FQDB;
-use Readdle\Database\FQDBException;
 
 class FQDBTest extends PHPUnit_Framework_TestCase {
 
@@ -11,7 +10,7 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
     private $fqdb;
 
     public function setUp() {
-        $this->fqdb = new FQDB('sqlite::memory:');
+        $this->fqdb = \Readdle\Database\FQDBProvider::dbWithDSN('sqlite::memory:');
         $this->assertInstanceOf('\Readdle\Database\FQDB', $this->fqdb);
         $result = $this->fqdb->execute("CREATE TABLE test ( id INTEGER PRIMARY KEY ASC, content TEXT, data BLOB );");
         $this->assertTrue($result === 0);
