@@ -58,6 +58,7 @@ class DSNConnectorTest extends \PHPUnit_Framework_TestCase
         return [
             ["username" => "john", false],
             [["username" => "john"], false],
+            [["dsn" => new stdClass()], false],
             [["dsn" => "any:dsn:here"], true],
         ];
     }

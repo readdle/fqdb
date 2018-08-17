@@ -34,6 +34,10 @@ class DSNConnector implements ConnectorInterface
             return false;
         }
         
+        if (!is_string($options["dsn"])) {
+            return false;
+        }
+        
         return true;
     }
 }
