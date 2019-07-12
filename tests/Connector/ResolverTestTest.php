@@ -13,11 +13,11 @@ class SQLiteMemoryConnector implements \Readdle\Database\Connector\ConnectorInte
     }
 }
 
-class ResolverTest extends \PHPUnit_Framework_TestCase
+class ResolverTest extends \PHPUnit\Framework\TestCase
 {
     private $resolver;
     
-    public function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
         $this->resolver = new \Readdle\Database\Connector\Resolver();

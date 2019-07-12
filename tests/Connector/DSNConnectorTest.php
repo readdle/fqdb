@@ -1,10 +1,10 @@
 <?php
 
-class DSNConnectorTest extends \PHPUnit_Framework_TestCase
+class DSNConnectorTest extends \PHPUnit\Framework\TestCase
 {
     private $connector;
     
-    public function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
         $this->connector = new \Readdle\Database\Connector\DSNConnector();

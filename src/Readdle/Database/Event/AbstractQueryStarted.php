@@ -9,28 +9,18 @@ abstract class AbstractQueryStarted extends Event
     private $query;
     private $params;
     
-    /**
-     * @param string $query
-     * @param array $params
-     */
-    public function __construct($query, $params)
+    public function __construct(string $query, array $params)
     {
         $this->query = $query;
         $this->params = $params;
     }
     
-    /**
-     * @return string
-     */
-    public function query()
+    public function query(): string
     {
         return $this->query;
     }
     
-    /**
-     * @return array
-     */
-    public function params()
+    public function params(): array
     {
         return $this->params;
     }
