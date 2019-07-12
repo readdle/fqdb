@@ -1,14 +1,25 @@
 <?php
 
+use Prophecy\Argument;
+use Readdle\Database\Event\DeleteQueryStarted;
+use Readdle\Database\Event\TransactionCommitted;
+use Readdle\Database\Event\TransactionRolledBack;
+use Readdle\Database\Event\TransactionStarted;
+use Readdle\Database\Event\UpdateQueryStarted;
 use Readdle\Database\FQDB;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
-class FQDBTest extends PHPUnit_Framework_TestCase {
+class FQDBTest extends \PHPUnit_Framework_TestCase {
 
     /**
      * @var FQDB $fqdb;
      */
     private $fqdb;
-
+    /**
+     * @var \Prophecy\Prophecy\ObjectProphecy
+     */
+    private $dispatcher;
+    
     public function setUp() {
         $this->fqdb = \Readdle\Database\FQDBProvider::dbWithDSN('sqlite::memory:');
         $this->assertInstanceOf('\Readdle\Database\FQDB', $this->fqdb);
@@ -16,6 +27,7 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
         $this->assertTrue($result === 0);
         $this->fqdb->insert("INSERT INTO test (content, data) VALUES ('test', 'data')");
         $this->fqdb->insert("INSERT INTO test (content, data) VALUES ('test', 'data')");
+        $this->dispatcher = $this->prophesize(EventDispatcherInterface::class);
     }
 
     public function testInsert() {
@@ -34,7 +46,11 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testDelete() {
-
+        $this->dispatcher
+            ->dispatch(DeleteQueryStarted::class, Argument::type(DeleteQueryStarted::class))
+            ->shouldBeCalledOnce();
+        $this->fqdb->setEventDispatcher($this->dispatcher->reveal());
+        
         $this->fqdb->insert("INSERT INTO test(content, data) VALUES('delme', 'please')");
         $this->fqdb->insert("INSERT INTO test(content, data) VALUES('delme', 'please')");
 
@@ -164,12 +180,26 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
 
     public function testUpdate() {
+        $this->dispatcher
+            ->dispatch(UpdateQueryStarted::class, Argument::type(UpdateQueryStarted::class))
+            ->shouldBeCalledOnce();
+        $this->fqdb->setEventDispatcher($this->dispatcher->reveal());
+    
         $countInTable = intval($this->fqdb->queryValue("SELECT COUNT(*) FROM test"));
         $count = $this->fqdb->update("UPDATE test SET content=:new", [':new' => 'new']);
         $this->assertEquals($countInTable, $count);
     }
 
     public function testBeginRollbackTransaction() {
+        $this->dispatcher
+            ->dispatch(TransactionStarted::class, Argument::type(TransactionStarted::class))
+            ->shouldBeCalledOnce();
+        $this->dispatcher
+            ->dispatch(TransactionRolledBack::class, Argument::type(TransactionRolledBack::class))
+            ->shouldBeCalledOnce();
+        
+        $this->fqdb->setEventDispatcher($this->dispatcher->reveal());
+        
         $this->fqdb->beginTransaction();
         $this->fqdb->insert("INSERT INTO test(id, content, data) VALUES(100, 'test', 'data')");
         $this->fqdb->rollbackTransaction();
@@ -179,6 +209,14 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
     }
 
     public function testBeginCommitTransaction() {
+        $this->dispatcher
+            ->dispatch(TransactionStarted::class, Argument::type(TransactionStarted::class))
+            ->shouldBeCalledOnce();
+        $this->dispatcher
+            ->dispatch(TransactionCommitted::class, Argument::type(TransactionCommitted::class))
+            ->shouldBeCalledOnce();
+        $this->fqdb->setEventDispatcher($this->dispatcher->reveal());
+        
         $this->fqdb->beginTransaction();
         $this->fqdb->insert("INSERT INTO test(id, content, data) VALUES(8, 'test', 'data')");
         $this->fqdb->commitTransaction();
