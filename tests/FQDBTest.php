@@ -274,65 +274,6 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals("`test`", $quoted);
     }
 
-    public function testBeforeUpdateHandler() {
-        $sqlFromHandler = '';
-        $optionsFromHandler = [];
-
-
-        $handler = function($sql, $options) use (&$sqlFromHandler, &$optionsFromHandler) {
-            $sqlFromHandler = $sql;
-            $optionsFromHandler = $options;
-            return $sqlFromHandler;
-        };
-
-        $this->fqdb->setBeforeUpdateHandler($handler);
-        $this->assertEquals($handler, $this->fqdb->getBeforeUpdateHandler());
-        $this->assertNull($this->fqdb->getBeforeDeleteHandler());
-        $this->assertNull($this->fqdb->getErrorHandler());
-        $this->assertNull($this->fqdb->getWarningHandler());
-
-
-        $sql = "UPDATE test SET content='new' WHERE id=:id";
-        $this->fqdb->update($sql, [':id' => 100]);
-
-        $this->assertEquals($sql, $sqlFromHandler);
-        $this->assertArrayHasKey(':id', $optionsFromHandler);
-        $this->assertEquals(100, $optionsFromHandler[':id']);
-
-        $this->fqdb->setBeforeDeleteHandler(null);
-        $this->assertNull($this->fqdb->getBeforeDeleteHandler());
-
-    }
-
-    public function testBeforeDeleteHandler() {
-        $sqlFromHandler = '';
-        $optionsFromHandler = [];
-
-
-        $handler = function($sql, $options) use (&$sqlFromHandler, &$optionsFromHandler) {
-            $sqlFromHandler = $sql;
-            $optionsFromHandler = $options;
-            return $sqlFromHandler;
-        };
-
-        $this->fqdb->setBeforeDeleteHandler($handler);
-        $this->assertEquals($handler, $this->fqdb->getBeforeDeleteHandler());
-        $this->assertNull($this->fqdb->getBeforeUpdateHandler());
-        $this->assertNull($this->fqdb->getErrorHandler());
-        $this->assertNull($this->fqdb->getWarningHandler());
-
-        $sql = "DELETE FROM test WHERE id=:id";
-        $this->fqdb->delete($sql, [':id' => 100]);
-
-        $this->assertEquals($sql, $sqlFromHandler);
-        $this->assertArrayHasKey(':id', $optionsFromHandler);
-        $this->assertEquals(100, $optionsFromHandler[':id']);
-
-        $this->fqdb->setBeforeDeleteHandler(null);
-        $this->assertNull($this->fqdb->getBeforeDeleteHandler());
-
-    }
-
     /**
      * @expectedException \SpecialException
      */
@@ -347,13 +288,10 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
         $this->fqdb->setErrorHandler($handler);
         $this->assertEquals($handler, $this->fqdb->getErrorHandler());
-        $this->assertNull($this->fqdb->getBeforeUpdateHandler());
-        $this->assertNull($this->fqdb->getBeforeDeleteHandler());
         $this->assertNull($this->fqdb->getWarningHandler());
 
         $this->fqdb->queryValue("SELECT something");
     }
-
 
 
     public function testWarningHandler() {
@@ -366,8 +304,6 @@ class FQDBTest extends PHPUnit_Framework_TestCase {
 
         $this->fqdb->setWarningHandler($handler);
         $this->assertEquals($handler, $this->fqdb->getWarningHandler());
-        $this->assertNull($this->fqdb->getBeforeUpdateHandler());
-        $this->assertNull($this->fqdb->getBeforeDeleteHandler());
         $this->assertNull($this->fqdb->getErrorHandler());
 
         $this->fqdb->setWarningReporting(true);
