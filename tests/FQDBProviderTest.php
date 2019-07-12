@@ -2,7 +2,7 @@
 
 use Readdle\Database\FQDBProvider;
 
-class FQDBProviderTest extends PHPUnit_Framework_TestCase {
+class FQDBProviderTest extends \PHPUnit\Framework\TestCase {
 
     function testParseMyCnf() {
         $oldHome = $_SERVER['HOME'];

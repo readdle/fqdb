@@ -2,32 +2,10 @@
 
 namespace Readdle\Database;
 
+use Readdle\Database\Event\DeleteQueryStarted;
+use Readdle\Database\Event\UpdateQueryStarted;
 
 class FQDBWriteAPI extends FQDBQueryAPI {
-
-    private $_beforeUpdateHandler;
-    private $_beforeDeleteHandler;
-
-
-    /**
-     * code for delete / update
-     * @param string $query
-     * @param array $params
-     * @param string $sqlPrefix
-     * @param callable|null $handler
-     * @return int affected rows count
-     */
-    private function doDeleteOrUpdate($query, $params, $sqlPrefix, $handler)
-    {
-        $this->_testQueryStarts($query, $sqlPrefix);
-
-        if ($handler !== null)
-            call_user_func_array($handler, [$query, $params]);
-
-        $statement = $this->_executeQuery($query, $params);
-        return $statement->rowCount();
-    }
-
 
     /**
      * executes DELETE query with placeholders in 2nd param
@@ -37,7 +15,11 @@ class FQDBWriteAPI extends FQDBQueryAPI {
      */
     public function delete($query, $params = array())
     {
-        return $this->doDeleteOrUpdate($query, $params, 'delete', $this->_beforeDeleteHandler);
+        $this->_testQueryStarts($query, 'delete');
+        $this->dispatch(new DeleteQueryStarted($query, $params));
+    
+        $statement = $this->_executeQuery($query, $params);
+        return $statement->rowCount();
     }
 
     /**
@@ -48,7 +30,11 @@ class FQDBWriteAPI extends FQDBQueryAPI {
      */
     public function update($query, $params = array())
     {
-        return $this->doDeleteOrUpdate($query, $params, 'update', $this->_beforeUpdateHandler);
+        $this->_testQueryStarts($query, 'update');
+        $this->dispatch(new UpdateQueryStarted($query, $params));
+    
+        $statement = $this->_executeQuery($query, $params);
+        return $statement->rowCount();
     }
 
     /**
@@ -99,46 +85,4 @@ class FQDBWriteAPI extends FQDBQueryAPI {
     {
         return $this->execute($query, $params, 'replace');
     }
-
-
-
-    /**
-     * sets a callback function to run before any UPDATE query
-     * @param callable $func
-     */
-    public function setBeforeUpdateHandler($func)
-    {
-        $this->_beforeUpdateHandler = $this->_callable($func);
-    }
-
-    /**
-     * sets a callback function to run before any DELETE query
-     * @param callable $func
-     */
-    public function setBeforeDeleteHandler($func)
-    {
-        $this->_beforeDeleteHandler = $this->_callable($func);
-    }
-
-
-    /**
-     *
-     * @return callable that runs before DELETE
-     */
-    public function getBeforeDeleteHandler()
-    {
-        return $this->_beforeDeleteHandler;
-    }
-
-    /**
-     *
-     * @return callable that runs before UPDATE
-     */
-    public function getBeforeUpdateHandler()
-    {
-        return $this->_beforeUpdateHandler;
-    }
-
-
-
 }

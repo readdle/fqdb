@@ -1,6 +1,6 @@
 <?php
 
-class SQLJsonEncodeTest extends PHPUnit_Framework_TestCase
+class SQLJsonEncodeTest extends \PHPUnit\Framework\TestCase
 {
     public function testSQLArgsArray()
     {

@@ -4,6 +4,10 @@ namespace Readdle\Database;
 
 use Readdle\Database\Connector\ConnectorInterface;
 use Readdle\Database\Connector\Resolver;
+use Readdle\Database\Event\TransactionStarted;
+use Readdle\Database\Event\TransactionCommitted;
+use Readdle\Database\Event\TransactionRolledBack;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class FQDBExecutor implements FQDBInterface
 {
@@ -24,6 +28,10 @@ class FQDBExecutor implements FQDBInterface
 
 
     private static $connectionResolver;
+    /**
+     * @var EventDispatcherInterface
+     */
+    private $dispatcher;
     private $_warningHandler;
     private $_warningReporting = false;
     private $_databaseServer = self::DB_DEFAULT; // for SQL specific stuff
@@ -71,7 +79,21 @@ class FQDBExecutor implements FQDBInterface
     {
         self::connectorResolver()->registerConnector($connector);
     }
+    
+    public function setEventDispatcher(EventDispatcherInterface $dispatcher)
+    {
+        $this->dispatcher = $dispatcher;
+    }
 
+    protected function dispatch($event)
+    {
+        if ($this->dispatcher === null) {
+            return;
+        }
+    
+        $this->dispatcher->dispatch(get_class($event), $event);
+    }
+    
     /**
      * Returns raw PDO object (for sessions?)
      * @return \PDO
@@ -112,6 +134,7 @@ class FQDBExecutor implements FQDBInterface
 
         try {
             $this->_pdo->beginTransaction();
+            $this->dispatch(new TransactionStarted());
             $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
@@ -125,6 +148,7 @@ class FQDBExecutor implements FQDBInterface
     {
         try {
             $this->_pdo->commit();
+            $this->dispatch(new TransactionCommitted());
             $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
             $this->rollbackTransaction();
@@ -139,6 +163,7 @@ class FQDBExecutor implements FQDBInterface
     {
         try {
             $this->_pdo->rollBack();
+            $this->dispatch(new TransactionRolledBack());
             $this->_lastCheckTime = time();
         } catch (\PDOException $e) {
             $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
