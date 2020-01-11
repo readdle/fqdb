@@ -91,7 +91,7 @@ class FQDBExecutor implements FQDBInterface
             return;
         }
     
-        $this->dispatcher->dispatch(get_class($event), $event);
+        $this->dispatcher->dispatch($event);
     }
     
     /**
