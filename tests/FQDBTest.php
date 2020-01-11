@@ -47,7 +47,7 @@ class FQDBTest extends \PHPUnit\Framework\TestCase {
 
     public function testDelete() {
         $this->dispatcher
-            ->dispatch(DeleteQueryStarted::class, Argument::type(DeleteQueryStarted::class))
+            ->dispatch(Argument::type(DeleteQueryStarted::class))
             ->shouldBeCalledOnce();
         $this->fqdb->setEventDispatcher($this->dispatcher->reveal());
         
@@ -174,7 +174,7 @@ class FQDBTest extends \PHPUnit\Framework\TestCase {
 
     public function testUpdate() {
         $this->dispatcher
-            ->dispatch(UpdateQueryStarted::class, Argument::type(UpdateQueryStarted::class))
+            ->dispatch(Argument::type(UpdateQueryStarted::class))
             ->shouldBeCalledOnce();
         $this->fqdb->setEventDispatcher($this->dispatcher->reveal());
     
@@ -185,10 +185,10 @@ class FQDBTest extends \PHPUnit\Framework\TestCase {
 
     public function testBeginRollbackTransaction() {
         $this->dispatcher
-            ->dispatch(TransactionStarted::class, Argument::type(TransactionStarted::class))
+            ->dispatch(Argument::type(TransactionStarted::class))
             ->shouldBeCalledOnce();
         $this->dispatcher
-            ->dispatch(TransactionRolledBack::class, Argument::type(TransactionRolledBack::class))
+            ->dispatch(Argument::type(TransactionRolledBack::class))
             ->shouldBeCalledOnce();
         
         $this->fqdb->setEventDispatcher($this->dispatcher->reveal());
@@ -203,10 +203,10 @@ class FQDBTest extends \PHPUnit\Framework\TestCase {
 
     public function testBeginCommitTransaction() {
         $this->dispatcher
-            ->dispatch(TransactionStarted::class, Argument::type(TransactionStarted::class))
+            ->dispatch(Argument::type(TransactionStarted::class))
             ->shouldBeCalledOnce();
         $this->dispatcher
-            ->dispatch(TransactionCommitted::class, Argument::type(TransactionCommitted::class))
+            ->dispatch(Argument::type(TransactionCommitted::class))
             ->shouldBeCalledOnce();
         $this->fqdb->setEventDispatcher($this->dispatcher->reveal());
         
