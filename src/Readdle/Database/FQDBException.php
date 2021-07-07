@@ -1,32 +1,52 @@
-<?php
+<?php declare(strict_types=1);
+
 namespace Readdle\Database;
 
 final class FQDBException extends \RuntimeException
 {
-
-    const FQDB_CODE              = 0;
-    const PDO_CODE               = 1;
-    const FQDB_PROVIDER_CODE     = 2;
-
-    const WRONG_QUERY                     = 'Given query does not fit called method';
-    const NO_DB_CONNECTION_ERROR          = 'No DB connection';
-    const NO_ACTIVE_QUERY_ERROR           = 'No active query error';
-    const DB_ALREADY_CONNECTED            = 'Already have active connection to a DB';
-    const NOT_CALLABLE_ERROR              = 'Param is not callable';
-    const CLASS_NOT_EXIST                 = 'Class not exists';
-    const PLACEHOLDERS_ERROR              = 'Placeholders not set properly';
-    const IDENTIFIER_QUOTE_ERROR          = 'Could not quote identifier: contains quote character';
-    const WRONG_DATA_TYPE_ON_IN_STATEMENT = 'Data must be array if you use FQDB::PARAM_IN_STATEMENT_VALUES param type';
-    const INTERNAL_ASSERTION_FAIL         = 'FQDB Constistency Error';
-    const DEPRECATED_API                  = 'FQDB Deprecated Functionality';
-
-
-    public function __construct($message = "", $code, \Exception $previous = null) {
-        $code_message_prefix = ['FQDB', 'PDO', 'FQDBProvider'];
-        if (empty($message) && $previous != null)
+    private array $context;
+    
+    public function __construct(string $message, array $context = [], ?\Throwable $previous = null)
+    {
+        if ("" === $message && null !== $previous) {
             $message = $previous->getMessage();
-
-        parent::__construct($code_message_prefix[$code].': '.$message, $code, $previous);
+        }
+        parent::__construct($message, 0, $previous);
+        $this->context = $context;
     }
-
+    
+    public function context(): array
+    {
+        return $this->context;
+    }
+    
+    public static function deprecatedApi(): self
+    {
+        return new self("FQDB: Deprecated Functionality");
+    }
+    
+    public static function pdo(\PDOException $exception, array $context = []): self
+    {
+        return new self("PDO: {$exception->getMessage()}", $context, $exception);
+    }
+    
+    public static function unableToQuote(string $str): self
+    {
+        return new self("FQDB: Unable to quote the string", ["str" => $str]);
+    }
+    
+    public static function assertion(string $message): self
+    {
+        return new self("FQDB: {$message}");
+    }
+    
+    public static function badPlaceholders(string $query, array $params, array $placeholders): self
+    {
+        return new self("FQDB: Placeholders set improperly", ["query" => $query, "params" => $params, "placeholders" => $placeholders]);
+    }
+    
+    public static function queryDontStart(string $query, string $start): self
+    {
+        return new self("FQDB: Query should start with {$start}", ["query" => $query]);
+    }
 }

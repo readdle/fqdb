@@ -1,37 +1,36 @@
-<?php
+<?php declare(strict_types=1);
+
+namespace Readdle\Database\Connector;
 
 class DSNConnectorTest extends \PHPUnit\Framework\TestCase
 {
-    private $connector;
+    private DSNConnector $connector;
     
     protected function setUp(): void
     {
         parent::setUp();
-        $this->connector = new \Readdle\Database\Connector\DSNConnector();
+        $this->connector = new DSNConnector();
     }
     
     /**
-     * @param $option
-     * @param $expected
      * @dataProvider supportProvider
      */
-    public function testSupport($option, $expected)
+    public function testSupport(array $option, $expected): void
     {
         $actual = $this->connector->supports($option);
         $this->assertEquals($expected, $actual);
     }
     
-    public function supportProvider()
+    public function supportProvider(): array
     {
         return [
-            ["username" => "john", false],
             [["username" => "john"], false],
-            [["dsn" => new stdClass()], false],
+            [["dsn" => new \stdClass()], false],
             [["dsn" => "any:dsn:here"], true],
         ];
     }
     
-    public function testConnectReturnsPDO()
+    public function testConnectReturnsPDO(): void
     {
         $pdo = $this->connector->connect(["dsn" => "sqlite::memory:"]);
         $this->assertInstanceOf(\PDO::class, $pdo);

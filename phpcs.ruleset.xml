@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<ruleset name="Coding Standard">
+    <description>Coding Standard</description>
+
+    <config name="testVersion" value="7.2-"/>
+    <arg name="extensions" value="php" />
+    <arg name="encoding" value="utf-8"/>
+    <arg value="s"/>
+    <arg value="n"/>
+
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+    <rule ref="Generic.Files.EndFileNewline"/>
+    <rule ref="Generic.Metrics.CyclomaticComplexity"/>
+    <rule ref="Generic.Metrics.NestingLevel"/>
+    <rule ref="Generic.Files.LineLength.TooLong"><exclude-pattern>*</exclude-pattern></rule>
+    <rule ref="Generic.Formatting.NoSpaceAfterCast"/>
+    <rule ref="Generic.Formatting.MultipleStatementAlignment">
+        <properties>
+            <property name="maxPadding" value="50" />
+            <property name="error" value="true" />
+        </properties>
+    </rule>
+    <rule ref="Generic.PHP.LowerCaseKeyword"/>
+    <rule ref="Generic.PHP.LowerCaseType"/>
+    <rule ref="Generic.PHP.DiscourageGoto"/>
+    <rule ref="Generic.PHP.BacktickOperator"/>
+    <rule ref="Generic.WhiteSpace.DisallowTabIndent"/>
+    <rule ref="Generic.VersionControl.GitMergeConflict"/>
+
+    <rule ref="PSR2" />
+    <rule ref="PSR12.Functions.NullableTypeDeclaration"/>
+    <rule ref="PSR1.Files.SideEffects.FoundWithSymbols"><exclude-pattern>*Test\.php</exclude-pattern></rule>
+    <rule ref="PSR2.Methods.MethodDeclaration.Underscore"><exclude-pattern>*</exclude-pattern></rule>
+    <rule ref="PSR2.Classes.PropertyDeclaration.Underscore"><exclude-pattern>*Test\.php</exclude-pattern></rule>
+
+    <rule ref="PHPCompatibility"/>
+    <rule ref="PHPCompatibility.Extensions.RemovedExtensions.fdfRemoved"><exclude-pattern>*</exclude-pattern></rule>
+
+    <rule ref="Squiz.Classes.ClassFileName" />
+    <rule ref="Squiz.Operators.ValidLogicalOperators"/>
+    <rule ref="Squiz.Scope.MethodScope"/>
+    <rule ref="Squiz.PHP.NonExecutableCode"/>
+    <rule ref="Squiz.PHP.GlobalKeyword"/>
+    <rule ref="Squiz.PHP.Eval"/>
+    <rule ref="Squiz.Strings.ConcatenationSpacing">
+        <properties>
+            <property name="spacing" value="1" />
+        </properties>
+    </rule>
+
+    <rule ref="Symfony.Functions.ScopeOrder"/>
+    <rule ref="Symfony.Functions.ReturnType"/>
+
+    <rule ref="Security.CVE"/>
+    <rule ref="Security.Symfony2"/>
+    <rule ref="Security.Misc"/>
+    <rule ref="Security.Misc.IncludeMismatch.ErrMiscIncludeMismatchNoExt"><exclude-pattern>*</exclude-pattern></rule>
+    <rule ref="Security.BadFunctions.Backticks"/>
+    <rule ref="Security.BadFunctions.NoEvals"/>
+    <rule ref="Security.BadFunctions.CryptoFunctions"/>
+    <rule ref="Security.BadFunctions.Mysqli"/>
+
+    <rule ref="SlevomatCodingStandard.PHP.OptimizedFunctionsWithoutUnpacking"/>
+    <rule ref="SlevomatCodingStandard.PHP.TypeCast"/>
+    <rule ref="SlevomatCodingStandard.PHP.ShortList"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.FullyQualifiedGlobalFunctions"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.NamespaceSpacing"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.UselessAlias"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.UnusedUses">
+        <properties>
+            <property name="searchAnnotations" value="true"/>
+        </properties>
+    </rule>
+    <rule ref="SlevomatCodingStandard.Arrays.DisallowImplicitArrayCreation"/>
+    <rule ref="SlevomatCodingStandard.Arrays.TrailingArrayComma"/>
+
+    <rule ref="Squiz.Arrays.ArrayDeclaration">
+        <exclude name="Squiz.Arrays.ArrayDeclaration.ValueNotAligned" />
+        <exclude name="Squiz.Arrays.ArrayDeclaration.KeyNotAligned" />
+        <exclude name="Squiz.Arrays.ArrayDeclaration.CloseBraceNotAligned" />
+        <exclude name="Squiz.Arrays.ArrayDeclaration.SingleLineNotAllowed" />
+        <exclude name="Squiz.Arrays.ArrayDeclaration.CommaAfterLast" />
+    </rule>
+
+    <rule ref="SlevomatCodingStandard.Classes.ModernClassNameReference"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.RequireShortTernaryOperator"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.RequireYodaComparison"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.RequireMultiLineTernaryOperator">
+        <properties>
+            <property name="lineLengthLimit" value="130"/>
+        </properties>
+    </rule>
+    <rule ref="SlevomatCodingStandard.Exceptions.DeadCatch"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.ReturnTypeHintSpacing"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.ParameterTypeHintSpacing"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.NullableTypeForNullDefaultValue"/>
+    <rule ref="Generic.PHP.ForbiddenFunctions">
+        <properties>
+            <property name="forbiddenFunctions" type="array" value="dump=>null" />
+        </properties>
+    </rule>
+</ruleset>
