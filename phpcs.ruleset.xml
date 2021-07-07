@@ -2,7 +2,7 @@
 <ruleset name="Coding Standard">
     <description>Coding Standard</description>
 
-    <config name="testVersion" value="7.2-"/>
+    <config name="testVersion" value="7.4-"/>
     <arg name="extensions" value="php" />
     <arg name="encoding" value="utf-8"/>
     <arg value="s"/>
