@@ -1,6 +1,10 @@
+# v4.0.3
+
+- [bugfix] Event dispatcher should be nullable 
+
 # v4.0.2
 
-- DSN Connector should not be resolved if empty dsn string provided
+- [bugfix] DSN Connector should not be resolved if empty dsn string provided
 
 # v4.0.1
 
