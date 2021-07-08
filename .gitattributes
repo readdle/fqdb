@@ -1,3 +1,4 @@
+/.github
 /src/Readdle/Database/test-data export-ignore
 *Test.php export-ignore
 phpunit.dist export-ignore
