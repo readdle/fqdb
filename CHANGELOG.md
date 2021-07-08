@@ -1,3 +1,7 @@
+# v4.0.1
+
+- Allowed `symfony/event-dispatcher:^4.3|5.*`
+
 # v4.0.0
 
 - Minimum PHP version 7.4
