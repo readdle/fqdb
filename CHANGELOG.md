@@ -1,3 +1,7 @@
+# v4.0.2
+
+- DSN Connector should not be resolved if empty dsn string provided
+
 # v4.0.1
 
 - Allowed `symfony/event-dispatcher:^4.3|5.*`
