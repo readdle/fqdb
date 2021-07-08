@@ -11,34 +11,27 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class FQDBExecutor implements FQDBInterface
 {
-    const QUOTE_DEFAULT    = 1;
-    const QUOTE_IDENTIFIER = 2;
+    public const QUOTE_DEFAULT    = 1;
+    public const QUOTE_IDENTIFIER = 2;
 
-    const DB_DEFAULT = 'ansi';
-    const DB_MYSQL   = 'mysql';
-    const DB_SQLITE  = 'sqlite';
-
-    const MYSQL_CONNECTION_TIMEOUT = 28790;
-    /**
-     * @var \PDO $_pdo - PDO object
-     */
-    private $_pdo;
-
-
+    private const DB_DEFAULT = 'ansi';
+    private const DB_MYSQL   = 'mysql';
+    private const DB_SQLITE  = 'sqlite';
+    
+    private const MYSQL_CONNECTION_TIMEOUT = 28790;
+    
+    /** @var Resolver */
     private static $connectionResolver;
     private EventDispatcherInterface $dispatcher;
-    private $warningHandler;
     private bool $warningReporting = false;
-    private $_databaseServer       = self::DB_DEFAULT; // for SQL specific stuff
-    private $errorHandler;
-    private $lastCheckTime;
+    private string $databaseServer = self::DB_DEFAULT; // for SQL specific stuff
+    private int $lastCheckTime;
     private array $connectData;
-
-    /**
-     * Like PDO::PARAMS_*
-     * Describes that passed data array is need to prepare for WHERE IN statement
-     */
-    const PARAM_FOR_IN_STATEMENT_VALUES = 101;
+    /** @var callable|null */
+    private $warningHandler;
+    /** @var callable|null */
+    private $errorHandler;
+    private \PDO $pdo;
 
     public function __construct(string $dsn, string $username = '', string $password = '', array $driver_options = [])
     {
@@ -63,7 +56,7 @@ class FQDBExecutor implements FQDBInterface
     
     public function getPdo(): \PDO
     {
-        return $this->_pdo;
+        return $this->pdo;
     }
 
     /**
@@ -89,7 +82,7 @@ class FQDBExecutor implements FQDBInterface
         $this->checkConnection();
 
         try {
-            $this->_pdo->beginTransaction();
+            $this->pdo->beginTransaction();
             $this->dispatch(new TransactionStarted());
             $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
@@ -100,7 +93,7 @@ class FQDBExecutor implements FQDBInterface
     public function commitTransaction(): void
     {
         try {
-            $this->_pdo->commit();
+            $this->pdo->commit();
             $this->dispatch(new TransactionCommitted());
             $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
@@ -112,7 +105,7 @@ class FQDBExecutor implements FQDBInterface
     public function rollbackTransaction(): void
     {
         try {
-            $this->_pdo->rollBack();
+            $this->pdo->rollBack();
             $this->dispatch(new TransactionRolledBack());
             $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
@@ -130,7 +123,7 @@ class FQDBExecutor implements FQDBInterface
             $quoteSymbol = '"';
 
             // MySQL and SQLite specific
-            if (self::DB_MYSQL == $this->_databaseServer || self::DB_SQLITE == $this->_databaseServer) {
+            if (self::DB_MYSQL == $this->databaseServer || self::DB_SQLITE == $this->databaseServer) {
                 $quoteSymbol = '`';
             }
 
@@ -141,7 +134,7 @@ class FQDBExecutor implements FQDBInterface
 
             return $quoteSymbol . $string . $quoteSymbol;
         } else {
-            return $this->_pdo->quote($string);
+            return $this->pdo->quote($string);
         }
     }
     
@@ -178,19 +171,19 @@ class FQDBExecutor implements FQDBInterface
     public function connect(): void
     {
         try {
-            $this->_pdo = self::connectorResolver()
+            $this->pdo = self::connectorResolver()
                 ->resolve($this->connectData)
                 ->connect($this->connectData);
             
-            $driverName = $this->_pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            $driverName = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
             
             if (false !== \strpos($driverName, 'mysql')) {
-                $this->_databaseServer = self::DB_MYSQL;
+                $this->databaseServer = self::DB_MYSQL;
             } elseif (false !== \strpos($driverName, 'sqlite')) {
-                $this->_databaseServer = self::DB_SQLITE;
+                $this->databaseServer = self::DB_SQLITE;
             }
 
-            $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
             $this->error(FQDBException::pdo($e));
@@ -234,7 +227,7 @@ class FQDBExecutor implements FQDBInterface
         try {
             [$query, $params] = $this->prepareStatement($query, $params);
             
-            $statement = $this->_pdo->prepare($query);
+            $statement = $this->pdo->prepare($query);
             
             $this->_preExecuteOptionsCheck($query, $params);
             
@@ -245,7 +238,7 @@ class FQDBExecutor implements FQDBInterface
             $this->lastCheckTime = \time();
             
             if ($needsLastInsertId) {
-                $lastInsertId = $this->_pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
+                $lastInsertId = $this->pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
             }
         } catch (\PDOException $e) {
             $this->error(FQDBException::pdo($e, ["query" => $query, "params" => $params]));
@@ -269,7 +262,7 @@ class FQDBExecutor implements FQDBInterface
      */
     private function checkConnection(): void
     {
-        if (self::DB_MYSQL !== $this->_databaseServer) {
+        if (self::DB_MYSQL !== $this->databaseServer) {
             return;
         }
 
@@ -282,15 +275,14 @@ class FQDBExecutor implements FQDBInterface
 
     /**
      * gathers Warning info from \PDO
-     * @return string
      */
     private function getWarnings(string $query, array $params = []): string
     {
-        if (self::DB_MYSQL === $this->_databaseServer) {
-            $stm           = $this->_pdo->query('SHOW WARNINGS');
+        if (self::DB_MYSQL === $this->databaseServer) {
+            $stm           = $this->pdo->query('SHOW WARNINGS');
             $queryWarnings = $stm->fetchAll(\PDO::FETCH_ASSOC);
         } else {
-            $queryWarnings = [['Message' => 'WarningReporting not impl. for ' . $this->_pdo->getAttribute(\PDO::ATTR_DRIVER_NAME)]];
+            $queryWarnings = [['Message' => 'WarningReporting not impl. for ' . $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME)]];
         }
 
 
@@ -380,8 +372,6 @@ class FQDBExecutor implements FQDBInterface
     }
 
     /**
-     * @param $query - original SQL string
-     * @param $params - options set
      * @throws FQDBException - when placeholders are not set properly
      */
     private function _preExecuteOptionsCheck(string $query, array $params)
