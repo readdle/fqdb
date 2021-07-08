@@ -30,6 +30,10 @@ final class DSNConnector implements ConnectorInterface
         if (!\is_string($options["dsn"])) {
             return false;
         }
+    
+        if ("" === $options["dsn"]) {
+            return false;
+        }
         
         return true;
     }
