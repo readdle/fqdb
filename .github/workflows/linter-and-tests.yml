@@ -9,6 +9,7 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     strategy:
       matrix:
         php-versions: ['7.4', '8.0']
