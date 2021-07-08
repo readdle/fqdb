@@ -1,9 +1,9 @@
 language: php
 php:
-  - 7.3
-  - 7.2
+  - 7.4
+  - 8.0
 install: composer install
-script: ./vendor/bin/phpunit --configuration phpunit.xml --coverage-text
+script: composer run ci && ./vendor/bin/phpunit --configuration phpunit.xml --coverage-text
 notifications:
     email:
         - andrian@readdle.com

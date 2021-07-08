@@ -1,17 +1,17 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Readdle\Database\Event;
 
-use Symfony\Component\EventDispatcher\Event;
+use Symfony\Contracts\EventDispatcher\Event;
 
 abstract class AbstractQueryStarted extends Event
 {
-    private $query;
-    private $params;
+    private string $query;
+    private array $params;
     
     public function __construct(string $query, array $params)
     {
-        $this->query = $query;
+        $this->query  = $query;
         $this->params = $params;
     }
     

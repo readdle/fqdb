@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<phpunit bootstrap="vendor/autoload.php" colors="true">
-
-
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="vendor/autoload.php"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         cacheResult="false"
+         processIsolation="false"
+         stopOnError="false"
+         stopOnFailure="false"
+         failOnRisky="true"
+         stopOnRisky="true"
+         verbose="false"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
+>
     <testsuites>
-        <testsuite name="FQDB Test Suite">
-            <directory>./tests/</directory>
+        <testsuite name="Main testsuite">
+            <directory suffix="Test.php">./src/</directory>
         </testsuite>
     </testsuites>
-
-    <filter>
-        <whitelist>
-            <directory>./</directory>
-            <exclude>
-                <directory>./tests</directory>
-                <directory>./vendor</directory>
-            </exclude>
-        </whitelist>
-    </filter>
 </phpunit>

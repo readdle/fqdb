@@ -1,8 +1,8 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Readdle\Database\Connector;
 
-class Resolver
+final class Resolver
 {
     /** @var ConnectorInterface[] */
     private $connectors = [];
@@ -12,12 +12,12 @@ class Resolver
         $this->registerConnector(new DSNConnector());
     }
     
-    public function registerConnector(ConnectorInterface $connector)
+    public function registerConnector(ConnectorInterface $connector): void
     {
-        $this->connectors[get_class($connector)] = $connector;
+        $this->connectors[\get_class($connector)] = $connector;
     }
     
-    public function resolve($options)
+    public function resolve(array $options): ConnectorInterface
     {
         foreach ($this->connectors as $connector) {
             if ($connector->supports($options)) {

@@ -1,49 +1,28 @@
-<?php
-/**
- * Created by PhpStorm.
- * User: andrian
- * Date: 2/19/15
- * Time: 11:30 AM
- */
+<?php declare(strict_types=1);
 
 namespace Readdle\Database;
 
-
 class SQLValueBlob extends BaseSQLValue
 {
-
-
-    /**
-     * @var string $blog ;
-     */
-    private $blob;
-
-    /**
-     * @param $blob string
-     */
-    public function __construct($blob)
+    private string $blob;
+    
+    public function __construct(string $blob)
     {
         $this->blob = $blob;
     }
-
-
-    public function getBlob()
+    
+    public function getBlob(): string
     {
         return $this->blob;
     }
-
-    /**
-     * @param \PDOStatement $statement
-     * @param string $placeholder
-     */
-    public function bind($statement, $placeholder)
+    
+    public function bind(\PDOStatement $statement, string $placeholder): void
     {
         $statement->bindParam($placeholder, $this->blob, \PDO::PARAM_LOB);
     }
-
+    
     public function jsonSerialize()
     {
-        return base64_encode($this->blob);
+        return \base64_encode($this->blob);
     }
-
 }

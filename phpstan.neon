@@ -1,0 +1,18 @@
+includes:
+	- phpstan-baseline.neon
+
+parameters:
+	level: 7
+	reportUnmatchedIgnoredErrors: false
+	checkMissingIterableValueType: false
+	paths:
+		- src
+	ignoreErrors:
+		-
+			message: "#^Parameter \\#3 \\.\\.\\.\\$args of method PDOStatement::fetchAll\\(\\) expects \\(callable\\(\\): mixed\\)\\|int\\|string, array\\|null given\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBQueryAPI.php
+		-
+			message: "#^Parameter \\#1 \\$value of function count expects array\\|Countable, array\\|false given\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php

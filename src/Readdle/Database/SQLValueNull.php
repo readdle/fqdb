@@ -1,24 +1,12 @@
-<?php
-/**
- * Created by PhpStorm.
- * User: andrian
- * Date: 2/19/15
- * Time: 11:24 AM
- */
+<?php declare(strict_types=1);
 
 namespace Readdle\Database;
 
-
 class SQLValueNull extends BaseSQLValue
 {
-
-    /**
-     * @param \PDOStatement $statement
-     * @param string $placeholder
-     */
-    public function bind($statement, $placeholder)
+    public function bind(\PDOStatement $statement, string $placeholder): void
     {
-        $statement->bindValue($placeholder, NULL, \PDO::PARAM_NULL);
+        $statement->bindValue($placeholder, null, \PDO::PARAM_NULL);
     }
 
     public function jsonSerialize()

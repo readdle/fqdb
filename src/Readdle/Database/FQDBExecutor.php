@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Readdle\Database;
 
@@ -11,49 +11,29 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class FQDBExecutor implements FQDBInterface
 {
+    public const QUOTE_DEFAULT    = 1;
+    public const QUOTE_IDENTIFIER = 2;
 
-    const QUOTE_DEFAULT = 1;
-    const QUOTE_IDENTIFIER = 2;
-
-
-    const DB_DEFAULT = 'ansi';
-    const DB_MYSQL = 'mysql';
-    const DB_SQLITE = 'sqlite';
-
-    const MYSQL_CONNECTION_TIMEOUT = 28790;
-    /**
-     * @var \PDO $_pdo - PDO object
-     */
-    private $_pdo;
-
-
+    private const DB_DEFAULT = 'ansi';
+    private const DB_MYSQL   = 'mysql';
+    private const DB_SQLITE  = 'sqlite';
+    
+    private const MYSQL_CONNECTION_TIMEOUT = 28790;
+    
+    /** @var Resolver */
     private static $connectionResolver;
-    /**
-     * @var EventDispatcherInterface
-     */
-    private $dispatcher;
-    private $_warningHandler;
-    private $_warningReporting = false;
-    private $_databaseServer = self::DB_DEFAULT; // for SQL specific stuff
-    private $_errorHandler;
-    private $_lastCheckTime;
-    private $connectData;
+    private EventDispatcherInterface $dispatcher;
+    private bool $warningReporting = false;
+    private string $databaseServer = self::DB_DEFAULT; // for SQL specific stuff
+    private int $lastCheckTime;
+    private array $connectData;
+    /** @var callable|null */
+    private $warningHandler;
+    /** @var callable|null */
+    private $errorHandler;
+    private \PDO $pdo;
 
-    /**
-     * Like PDO::PARAMS_*
-     * Describes that passed data array is need to prepare for WHERE IN statement
-     */
-    const PARAM_FOR_IN_STATEMENT_VALUES = 101;
-
-
-    /**
-     * connects to DB, using params below
-     * @param string $dsn
-     * @param string $username
-     * @param string $password
-     * @param array $driver_options
-     */
-    public function __construct($dsn, $username = '', $password = '', $driver_options = [])
+    public function __construct(string $dsn, string $username = '', string $password = '', array $driver_options = [])
     {
         $this->connectData = [
             "dsn"            => $dsn,
@@ -64,45 +44,20 @@ class FQDBExecutor implements FQDBInterface
         $this->connect();
     }
     
-    /**
-     * @return Resolver
-     */
-    private static function connectorResolver()
-    {
-        if (self::$connectionResolver === null) {
-            self::$connectionResolver = new Resolver();
-        }
-        return self::$connectionResolver;
-    }
-    
-    public static function registerConnector(ConnectorInterface $connector)
+    public static function registerConnector(ConnectorInterface $connector): void
     {
         self::connectorResolver()->registerConnector($connector);
     }
     
-    public function setEventDispatcher(EventDispatcherInterface $dispatcher)
+    public function setEventDispatcher(EventDispatcherInterface $dispatcher): void
     {
         $this->dispatcher = $dispatcher;
     }
-
-    protected function dispatch($event)
-    {
-        if ($this->dispatcher === null) {
-            return;
-        }
     
-        $this->dispatcher->dispatch($event);
-    }
-    
-    /**
-     * Returns raw PDO object (for sessions?)
-     * @return \PDO
-     */
-    public function getPdo()
+    public function getPdo(): \PDO
     {
-        return $this->_pdo;
+        return $this->pdo;
     }
-
 
     /**
      * Execute given SQL query. Please DON'T use instead of other functions
@@ -110,126 +65,208 @@ class FQDBExecutor implements FQDBInterface
      * example - use this if you need something like "TRUNCATE TABLE `users`"
      * use it VERY CAREFULLY!
      *
-     * @param string $sqlQuery
-     * @param array $params
-     * @param string $prefix prefix to check SQL query against
      * @return int affected rows count
      */
-    public function execute($sqlQuery, $params = [], $prefix = '')
+    public function execute(string $query, array $params = [], string $prefix = ""): int
     {
-        if ($prefix !== '')
-            $this->_testQueryStarts($sqlQuery, $prefix);
-
-        $statement = $this->_executeQuery($sqlQuery, $params);
+        if ('' !== $prefix) {
+            $this->assertQueryStarts($query, $prefix);
+        }
+    
+        $statement = $this->executeQuery($query, $params);
         return $statement->rowCount();
     }
 
-
-    /**
-     * starts transaction
-     */
-    public function beginTransaction()
+    public function beginTransaction(): void
     {
         $this->checkConnection();
 
         try {
-            $this->_pdo->beginTransaction();
+            $this->pdo->beginTransaction();
             $this->dispatch(new TransactionStarted());
-            $this->_lastCheckTime = time();
+            $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
-            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
+            $this->error(FQDBException::pdo($e));
         }
     }
 
-    /**
-     * commits transaction
-     */
-    public function commitTransaction()
+    public function commitTransaction(): void
     {
         try {
-            $this->_pdo->commit();
+            $this->pdo->commit();
             $this->dispatch(new TransactionCommitted());
-            $this->_lastCheckTime = time();
+            $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
             $this->rollbackTransaction();
-            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
+            $this->error(FQDBException::pdo($e));
         }
     }
 
-    /**
-     * rollbacks transaction
-     */
-    public function rollbackTransaction()
+    public function rollbackTransaction(): void
     {
         try {
-            $this->_pdo->rollBack();
+            $this->pdo->rollBack();
             $this->dispatch(new TransactionRolledBack());
-            $this->_lastCheckTime = time();
+            $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
-            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
+            $this->error(FQDBException::pdo($e));
         }
     }
 
     /**
-     *
-     * @param string $string
      * @param int $mode -- FQDB::QUOTE_DEFAULT (for regular data) or FQDB::QUOTE_IDENTIFIER for table and field names
-     * @return string quoted
      */
-    public function quote($string, $mode = self::QUOTE_DEFAULT)
+    public function quote(string $string, int $mode = self::QUOTE_DEFAULT): string
     {
-        if ($mode == self::QUOTE_IDENTIFIER) {
+        if (self::QUOTE_IDENTIFIER == $mode) {
             // SQL ANSI default
             $quoteSymbol = '"';
 
             // MySQL and SQLite specific
-            if ($this->_databaseServer == self::DB_MYSQL || $this->_databaseServer == self::DB_SQLITE) {
+            if (self::DB_MYSQL == $this->databaseServer || self::DB_SQLITE == $this->databaseServer) {
                 $quoteSymbol = '`';
             }
 
             // quotes inside mysql field are so rare, that we'd rather ban them
-            if (strpos($string, $quoteSymbol) !== false)
-                $this->_error(FQDBException::IDENTIFIER_QUOTE_ERROR, FQDBException::FQDB_CODE);
+            if (false !== \strpos($string, $quoteSymbol)) {
+                $this->error(FQDBException::unableToQuote($string));
+            }
 
             return $quoteSymbol . $string . $quoteSymbol;
         } else {
-            return $this->_pdo->quote($string);
+            return $this->pdo->quote($string);
         }
     }
-
-    public function connect()
+    
+    public function setWarningHandler(?callable $func = null): void
+    {
+        $this->warningHandler = $func;
+    }
+    
+    public function getWarningHandler(): ?callable
+    {
+        return $this->warningHandler;
+    }
+    
+    public function setWarningReporting(bool $bool = true): void
+    {
+        $this->warningReporting = $bool;
+    }
+    
+    public function getWarningReporting(): bool
+    {
+        return $this->warningReporting;
+    }
+    
+    public function setErrorHandler(?callable $func = null): void
+    {
+        $this->errorHandler = $func;
+    }
+    
+    public function getErrorHandler(): ?callable
+    {
+        return $this->errorHandler;
+    }
+    
+    public function connect(): void
     {
         try {
-            $this->_pdo = self::connectorResolver()
+            $this->pdo = self::connectorResolver()
                 ->resolve($this->connectData)
                 ->connect($this->connectData);
             
-            $driverName = $this->_pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            $driverName = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
             
-            if (strpos($driverName, 'mysql') !== false) {
-                $this->_databaseServer = self::DB_MYSQL;
-            } elseif (strpos($driverName, 'sqlite') !== false) {
-                $this->_databaseServer = self::DB_SQLITE;
+            if (false !== \strpos($driverName, 'mysql')) {
+                $this->databaseServer = self::DB_MYSQL;
+            } elseif (false !== \strpos($driverName, 'sqlite')) {
+                $this->databaseServer = self::DB_SQLITE;
             }
 
-            $this->_pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            $this->_lastCheckTime = time();
+            $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
-            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e);
-            trigger_error('FQDB Fatal', E_ERROR);
+            $this->error(FQDBException::pdo($e));
         }
     }
-
+    
+    /**
+     * @throws \Readdle\Database\FQDBException if its not
+     */
+    protected function assertQueryStarts(string $query, string $needle): void
+    {
+        $query = \trim($query, " \t\n\r");
+        if (!\preg_match("/^{$needle}.*/i", $query)) {
+            $this->error(FQDBException::queryDontStart($query, $needle));
+        }
+    }
+    
+    /** @throws \Readdle\Database\FQDBException */
+    protected function error(FQDBException $error): void
+    {
+        if (isset($this->errorHandler)) {
+            \call_user_func($this->errorHandler, $error);
+        }
+        throw $error;
+    }
+    
+    protected function dispatch($event): void
+    {
+        if (null === $this->dispatcher) {
+            return;
+        }
+        
+        $this->dispatcher->dispatch($event);
+    }
+    
+    /** @return \PDOStatement|string */
+    protected function executeQuery(string $query, array $params, bool $needsLastInsertId = false)
+    {
+        $this->checkConnection();
+        
+        try {
+            [$query, $params] = $this->prepareStatement($query, $params);
+            
+            $statement = $this->pdo->prepare($query);
+            
+            $this->_preExecuteOptionsCheck($query, $params);
+            
+            $this->bindOptionsToStatement($params, $statement);
+            
+            $statement->execute(); //options are already bound to query
+            
+            $this->lastCheckTime = \time();
+            
+            if ($needsLastInsertId) {
+                $lastInsertId = $this->pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
+            }
+        } catch (\PDOException $e) {
+            $this->error(FQDBException::pdo($e, ["query" => $query, "params" => $params]));
+        }
+        
+        $this->reportWarnings($query, $params);
+        
+        return isset($lastInsertId) ? $lastInsertId : $statement;
+    }
+    
+    private static function connectorResolver(): Resolver
+    {
+        if (null === self::$connectionResolver) {
+            self::$connectionResolver = new Resolver();
+        }
+        return self::$connectionResolver;
+    }
+    
     /**
      * if last query was too long time ago - reconnect
      */
-    private function checkConnection()
+    private function checkConnection(): void
     {
-        if ($this->_databaseServer !== self::DB_MYSQL) {
+        if (self::DB_MYSQL !== $this->databaseServer) {
             return;
         }
 
-        $interval = (time() - (int)$this->_lastCheckTime);
+        $interval = (\time() - (int)$this->lastCheckTime);
 
         if ($interval >= self::MYSQL_CONNECTION_TIMEOUT) {
             $this->connect();
@@ -238,37 +275,34 @@ class FQDBExecutor implements FQDBInterface
 
     /**
      * gathers Warning info from \PDO
-     * @param string $sqlQueryString SQL query string with placeholders
-     * @param array $options options passed to query
-     * @return string
      */
-    private function _getWarnings($sqlQueryString, $options = [])
+    private function getWarnings(string $query, array $params = []): string
     {
-        if ($this->_databaseServer === self::DB_MYSQL) {
-            $stm = $this->_pdo->query('SHOW WARNINGS');
-            $sqlWarnings = $stm->fetchAll(\PDO::FETCH_ASSOC);
+        if (self::DB_MYSQL === $this->databaseServer) {
+            $stm           = $this->pdo->query('SHOW WARNINGS');
+            $queryWarnings = $stm->fetchAll(\PDO::FETCH_ASSOC);
         } else {
-            $sqlWarnings = [['Message' => 'WarningReporting not impl. for ' . $this->_pdo->getAttribute(\PDO::ATTR_DRIVER_NAME)]];
+            $queryWarnings = [['Message' => 'WarningReporting not impl. for ' . $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME)]];
         }
 
 
-        if (count($sqlWarnings) > 0) {
-            $warnings = "Query:\n{$sqlQueryString}\n";
+        if (\count($queryWarnings) > 0) {
+            $warnings = "Query:\n{$query}\n";
 
-            if (!empty($options)) {
+            if (!empty($params)) {
                 $warnings .= "Params: (";
 
-                foreach ($options as $key => $value) {
-                    $warnings .= $key . '=' . json_encode($value) . ', ';
+                foreach ($params as $key => $value) {
+                    $warnings .= $key . '=' . \json_encode($value) . ', ';
                 }
 
-                $warnings = substr($warnings, 0, -2) . ")\n";
+                $warnings = \substr($warnings, 0, -2) . ")\n";
             }
 
 
             $warnings .= "Produced Warnings:";
 
-            foreach ($sqlWarnings as $warn) {
+            foreach ($queryWarnings as $warn) {
                 $warnings .= "\n* " . $warn['Message'];
             }
 
@@ -279,254 +313,80 @@ class FQDBExecutor implements FQDBInterface
     }
 
     /**
-     * Find WHERE IN statements and converts sqlQueryString and $options
+     * Find WHERE IN statements and converts sqlQueryString and $params
      * to format needed for WHERE IN statement run
-     *
-     * @param string $sqlQueryString
-     * @param array $options placeholders values
-     * @return array queryString options
      */
-    private function _prepareStatement($sqlQueryString, $options)
+    private function prepareStatement(string $query, array $params): array
     {
         $statementNum = 0;
-        foreach ($options as $placeholder => $value) {
-            if (is_object($value) && ($value instanceof SQLArgs || $value instanceof SQLArgsArray)) {
+        foreach ($params as $placeholder => $value) {
+            if (($value instanceof SQLArgs || $value instanceof SQLArgsArray)) {
                 $args = $value->toArray();
-
-                if (!is_array($args)) {
-                    $this->_error(FQDBException::INTERNAL_ASSERTION_FAIL, FQDBException::FQDB_CODE);
-                }
 
                 $statementNum++;
                 $valueInStatementNum = 0;
-                $whereInStatement = [];
+                $whereInStatement    = [];
                 foreach ($args as $inStatementValue) {
                     $valueInStatementNum++;
-                    $whereInStatement[':where_in_statement_' . $statementNum . '_' . $valueInStatementNum] = $inStatementValue;
+                    $whereInStatement[":where_in_statement_{$statementNum}_{$valueInStatementNum}"] = $inStatementValue;
                 }
 
-                $sqlQueryString = str_replace($placeholder, implode(', ', array_keys($whereInStatement)), $sqlQueryString);
+                $query  = \str_replace($placeholder, \implode(', ', \array_keys($whereInStatement)), $query);
+                $params = \array_merge($params, $whereInStatement);
 
-                $options = array_merge($options, $whereInStatement);
-
-                unset($options[$placeholder]);
+                unset($params[$placeholder]);
             }
         }
 
-        return [
-            $sqlQueryString,
-            $options
-        ];
+        return [$query, $params];
     }
 
-    /**
-     * @param string $sqlQueryString
-     * @param array $options
-     */
-    private function reportWarnings($sqlQueryString, $options)
+    private function reportWarnings(string $queryQueryString, array $params): void
     {
-
-        if ($this->_warningReporting) {
-            $warningMessage = $this->_getWarnings($sqlQueryString, $options);
+        if ($this->warningReporting) {
+            $warningMessage = $this->getWarnings($queryQueryString, $params);
 
             if (!empty($warningMessage)) {
-
-                if (isset($this->_warningHandler)) {
-                    call_user_func($this->_warningHandler, $warningMessage);
+                if (isset($this->warningHandler)) {
+                    \call_user_func($this->warningHandler, $warningMessage);
                 } else {
-                    trigger_error($warningMessage, E_USER_WARNING); // default warning handler
+                    \trigger_error($warningMessage, E_USER_WARNING); // default warning handler
                 }
-
             }
         }
     }
 
-    /**
-     * @param array $options
-     * @param \PDOStatement $statement
-     */
-    private function bindOptionsToStatement(&$options, \PDOStatement $statement)
+    private function bindOptionsToStatement(array &$params, \PDOStatement $statement): void
     {
-
         // warning! it is important to pass $value by reference here, since
         // bindParam also binds parameter by reference (and the value itself is changing)
-        foreach ($options as $placeholder => &$value) {
-
-            if (is_array($value)) {
-                $this->_error(FQDBException::DEPRECATED_API, FQDBException::FQDB_CODE);
-            } else if (is_object($value) && $value instanceof BaseSQLValue) {
+        foreach ($params as $placeholder => &$value) {
+            if (\is_array($value)) {
+                $this->error(FQDBException::deprecatedApi());
+            } else if ($value instanceof BaseSQLValue) {
                 $value->bind($statement, $placeholder);
             } else {
                 $statement->bindParam($placeholder, $value);
             }
         }
-
     }
 
     /**
-     * executes prepared \PDO query
-     * @param $sqlQueryString
-     * @param $options
-     * @param bool $needsLastInsertId
-     * @return int|\PDOStatement|string
-     */
-    protected function _executeQuery($sqlQueryString, $options, $needsLastInsertId = false)
-    {
-        $this->checkConnection();
-
-        try {
-            list($sqlQueryString, $options) = $this->_prepareStatement($sqlQueryString, $options);
-
-            $statement = $this->_pdo->prepare($sqlQueryString);
-
-            $this->_preExecuteOptionsCheck($sqlQueryString, $options);
-
-            $this->bindOptionsToStatement($options, $statement);
-
-            $statement->execute(); //options are already bound to query
-
-            $this->_lastCheckTime = time();
-
-            if ($needsLastInsertId)
-                $lastInsertId = $this->_pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
-
-        } catch (\PDOException $e) {
-            $this->_error($e->getMessage(), FQDBException::PDO_CODE, $e, [$sqlQueryString, $options]);
-            return 0; // for static analysis
-        }
-
-        $this->reportWarnings($sqlQueryString, $options);
-
-        return isset($lastInsertId) ? $lastInsertId : $statement;
-    }
-
-    /**
-     * @param $sqlQueryString - original SQL string
-     * @param $options - options set
      * @throws FQDBException - when placeholders are not set properly
      */
-    private function _preExecuteOptionsCheck($sqlQueryString, $options)
+    private function _preExecuteOptionsCheck(string $query, array $params)
     {
-        preg_match_all('/:[a-z]\w*/u', $sqlQueryString, $placeholders);
+        \preg_match_all('/:[a-z]\w*/u', $query, $placeholders);
         // !!!!WARNING!!!! placeholders SHOULD start form lowercase letter!
 
-        if (empty($placeholders) || empty($placeholders[0]))
+        if (empty($placeholders) || empty($placeholders[0])) {
             return; //no placeholders found
+        }
 
         foreach ($placeholders[0] as $placeholder) {
-            if (!array_key_exists($placeholder, $options)) {
-                //placeholder not set oops
-
-                $msg = FQDBException::PLACEHOLDERS_ERROR;
-                $msg .= ' ' . json_encode($options);
-                $msg .= ' ' . json_encode($placeholders);
-                $msg .= ' ' . $sqlQueryString;
-
-                $this->_error($msg, FQDBException::FQDB_CODE);
+            if (!\array_key_exists($placeholder, $params)) {
+                $this->error(FQDBException::badPlaceholders($query, $params, $placeholders));
             }
         }
-    }
-
-
-    /**
-     * checks if query starts correctly
-     * @param string $query
-     * @param string $needle
-     * @throws \Readdle\Database\FQDBException if its not
-     */
-    protected function _testQueryStarts($query, $needle)
-    {
-        $query = trim($query, " \t\n\r");
-        if (!preg_match("/^$needle.*/i", $query)) {
-            $this->_error(FQDBException::WRONG_QUERY, FQDBException::FQDB_CODE);
-        }
-    }
-
-    /**
-     * handle Errors
-     * @param string $message error text
-     * @param int $code code 0 - FQDB, 1 - PDO
-     * @param \Exception $exception previous Exception
-     * @param array $context
-     * @throws \Readdle\Database\FQDBException if its not
-     */
-    protected function _error($message, $code, $exception = null, $context = [])
-    {
-        if (isset($this->_errorHandler)) {
-            call_user_func($this->_errorHandler, $message, $code, $exception, $context);
-            trigger_error('FQDB error handler function should die() or throw another exception!', E_ERROR);
-        } else {
-            throw new FQDBException($message, $code, $exception);
-        }
-    }
-
-
-    /**
-     * @param $func
-     * @return null
-     */
-    protected function _callable($func)
-    {
-        if (is_callable($func)) {
-            return $func;
-        } else {
-            if ($func !== null)
-                $this->_error(FQDBException::NOT_CALLABLE_ERROR, FQDBException::FQDB_CODE);
-            return null;
-        }
-    }
-
-
-    /**
-     * sets Warnings handling function
-     * @param callable $func
-     */
-    public function setWarningHandler($func)
-    {
-        $this->_warningHandler = $this->_callable($func);
-    }
-
-    /**
-     *
-     * @return callable that handles Warnings
-     */
-    public function getWarningHandler()
-    {
-        return $this->_warningHandler;
-    }
-
-    /**
-     * sets Warning reporting on\off
-     * @param boolean $bool
-     */
-    public function setWarningReporting($bool = true)
-    {
-        $this->_warningReporting = (bool)$bool;
-    }
-
-    /**
-     * @return bool if warning reporting is enabled (default -- no)
-     */
-    public function getWarningReporting()
-    {
-        return (bool)$this->_warningReporting;
-    }
-
-    /**
-     * sets Errors handling function
-     * @param callable $func
-     */
-    public function setErrorHandler($func)
-    {
-        $this->_errorHandler = $this->_callable($func);
-    }
-
-    /**
-     *
-     * @return callable that handles Errors
-     */
-    public function getErrorHandler()
-    {
-        return $this->_errorHandler;
     }
 }

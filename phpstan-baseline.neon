@@ -1,0 +1,327 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Method Readdle\\\\Database\\\\Connector\\\\DSNConnectorTest\\:\\:testSupport\\(\\) has parameter \\$expected with no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/Connector/DSNConnectorTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDB\\:\\:unserialize\\(\\) with return type void returns null but should not return anything\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDB.php
+
+		-
+			message: "#^Argument of an invalid type array\\|false supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Cannot call method fetchAll\\(\\) on PDOStatement\\|false\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Cannot call method rowCount\\(\\) on PDOStatement\\|string\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBExecutor\\:\\:_preExecuteOptionsCheck\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBExecutor\\:\\:dispatch\\(\\) has parameter \\$event with no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^PHPDoc tag @param has invalid value \\(\\$params \\- options set\\)\\: Unexpected token \"\\$params\", expected type at offset 61$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^PHPDoc tag @param has invalid value \\(\\$query \\- original SQL string\\)\\: Unexpected token \"\\$query\", expected type at offset 18$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Parameter \\#1 \\$var of function count expects array\\|Countable, array\\|false given\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Property Readdle\\\\Database\\\\FQDBExecutor\\:\\:\\$_databaseServer has no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Property Readdle\\\\Database\\\\FQDBExecutor\\:\\:\\$connectionResolver has no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Property Readdle\\\\Database\\\\FQDBExecutor\\:\\:\\$errorHandler has no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Property Readdle\\\\Database\\\\FQDBExecutor\\:\\:\\$lastCheckTime has no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Property Readdle\\\\Database\\\\FQDBExecutor\\:\\:\\$warningHandler has no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between null and Symfony\\\\Component\\\\EventDispatcher\\\\EventDispatcherInterface will always evaluate to false\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBExecutor.php
+
+		-
+			message: "#^Argument of an invalid type array\\<int, string\\>\\|false supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBProvider.php
+
+		-
+			message: "#^PHPDoc tag @param has invalid value \\(\\$callback \\- callable that creates default FQDB instance\\)\\: Unexpected token \"\\$callback\", expected type at offset 18$#"
+			count: 1
+			path: src/Readdle/Database/FQDBProvider.php
+
+		-
+			message: "#^Property Readdle\\\\Database\\\\FQDBProvider\\:\\:\\$FQDBCreatorCallback has no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBProvider.php
+
+		-
+			message: "#^Property Readdle\\\\Database\\\\FQDBProvider\\:\\:\\$defaultFQDB has no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBProvider.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBQueryAPI\\:\\:runQuery\\(\\) should return PDOStatement but returns PDOStatement\\|string\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBQueryAPI.php
+
+		-
+			message: "#^Call to an undefined method Prophecy\\\\Prophecy\\\\ObjectProphecy\\:\\:dispatch\\(\\)\\.$#"
+			count: 6
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Cannot access property \\$id on object\\|false\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testBeginCommitTransaction\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testBeginRollbackTransaction\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testBlobInsert\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testCommitException\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testDelete\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testErrorHandler\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testGeneralException\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testGetPDO\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testInsert\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testInsertException\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testPlaceholder\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testPlaceholderException1\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testPlaceholderException2\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testPlaceholderException3\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryAssoc\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryHash\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryList\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryObj\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryObjArray\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryObjArrayException\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryObjException\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryTable\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryTableCallbackOk\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryTableGenerator\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryValue\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryValueException\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQueryVector\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQuote\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testQuoteIdentifier\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testReplace\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testTrimmedQuery\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testUpdate\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testWarningHandler\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBTest\\:\\:testWhereInStatement\\(\\) has no return typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$dispatcher of method Readdle\\\\Database\\\\FQDBExecutor\\:\\:setEventDispatcher\\(\\) expects Symfony\\\\Component\\\\EventDispatcher\\\\EventDispatcherInterface, object given\\.$#"
+			count: 4
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$array of method PHPUnit\\\\Framework\\\\Assert\\:\\:assertArrayHasKey\\(\\) expects array\\|ArrayAccess, array\\|false given\\.$#"
+			count: 10
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Property Readdle\\\\Database\\\\QueryObject\\:\\:\\$data has no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Property Readdle\\\\Database\\\\QueryObject\\:\\:\\$id has no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Property Readdle\\\\Database\\\\QueryObject\\:\\:\\$test has no typehint specified\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBTest.php
+
+		-
+			message: "#^Cannot call method rowCount\\(\\) on PDOStatement\\|string\\.$#"
+			count: 2
+			path: src/Readdle/Database/FQDBWriteAPI.php
+
+		-
+			message: "#^Method Readdle\\\\Database\\\\FQDBWriteAPI\\:\\:insert\\(\\) should return string but returns PDOStatement\\|string\\.$#"
+			count: 1
+			path: src/Readdle/Database/FQDBWriteAPI.php
+
+		-
+			message: "#^Parameter \\#1 \\$blob of class Readdle\\\\Database\\\\SQLValueBlob constructor expects string, string\\|false given\\.$#"
+			count: 1
+			path: src/Readdle/Database/SQLValueBlobTest.php
+

@@ -1,137 +1,120 @@
-<?php
+<?php declare(strict_types=1);
+
 namespace Readdle\Database;
 
-class FQDBProvider {
-
-    protected static $defaultFQDB;
-    protected static $FQDBCreatorCallback;
-    protected static $providerMode;
-
-
+final class FQDBProvider
+{
+    private static $defaultFQDB;
+    private static $FQDBCreatorCallback;
+    
     /**
      * @return array - parsed key-value array of ~/.my.cnf
      * @throws FQDBException if there is no file or unable to find HOME dir
      */
-    public static function parseMyCnf()
+    public static function parseMyCnf(): array
     {
         if (!isset($_SERVER['HOME'])) {
-            throw new FQDBException("unable to find home dir", FQDBException::FQDB_PROVIDER_CODE);
+            throw FQDBException::assertion("unable to find home dir");
         }
-
+        
         $my_cnf_path = $_SERVER['HOME'] . '/.my.cnf';
-
-        if (!file_exists($my_cnf_path)) {
-            throw new FQDBException("unable to find {$my_cnf_path}", FQDBException::FQDB_PROVIDER_CODE);
+        
+        if (!\file_exists($my_cnf_path)) {
+            throw FQDBException::assertion("unable to find {$my_cnf_path}");
         }
-
-        $lines = file($my_cnf_path);
+        
+        $lines    = \file($my_cnf_path);
         $database = $user = $password = "";
-        $host = "localhost";
-
+        $host     = "localhost";
+        
         foreach ($lines as $line) {
-
-            $kv = explode("=", $line);
-
-            if (count($kv) != 2) {
+            $kv = \explode("=", $line);
+            
+            if (2 != \count($kv)) {
                 continue;
             }
-
-            $kv = array_map('trim', $kv);
-
-            if (0 === strpos($kv[0], 'pass')) {
+            
+            $kv = \array_map('trim', $kv);
+            
+            if (0 === \strpos($kv[0], 'pass')) {
                 $password = $kv[1];
             }
-
-            if ($kv[0] === 'user') {
+            
+            if ('user' === $kv[0]) {
                 $user = $kv[1];
             }
-
-            if ($kv[0] === 'database') {
+            
+            if ('database' === $kv[0]) {
                 $database = $kv[1];
             }
-
-            if ($kv[0] === 'host') {
+            
+            if ('host' === $kv[0]) {
                 $host = $kv[1];
             }
-
         }
-
-        if ($user == "") {
-            throw new FQDBException("unable to find user in .my.cnf", FQDBException::FQDB_PROVIDER_CODE);
+        
+        if ("" == $user) {
+            throw FQDBException::assertion("unable to find user in .my.cnf");
         }
-
-        return compact('user', 'password', 'database', 'host');
+        
+        return \compact('user', 'password', 'database', 'host');
     }
-
-
-    /**
-     * @param string $database database to override (or set) instead of ~/my.cnf
-     * @return FQDB instance
-     * @throws FQDBException if there is no database
-     */
-    public static function dbWithMyCnf($database='') {
+    
+    public static function dbWithMyCnf(string $database = ''): FQDB
+    {
         $my = static::parseMyCnf();
-
-        if ($database != '') {
+        
+        if ('' != $database) {
             $my['database'] = $database;
         }
-
-        if ($my['database'] == '') {
-            throw new FQDBException("no database specified in config or argument", FQDBException::FQDB_PROVIDER_CODE);
+        
+        if ('' == $my['database']) {
+            throw FQDBException::assertion("No database specified in config or argument");
         }
-
-        return self::dbWithDSN("mysql:host={$my['host']};dbname={$my['database']};charset=utf8mb4", $my['user'], $my['password']);
+        
+        return self::dbWithDSN(
+            "mysql:host={$my['host']};dbname={$my['database']};charset=utf8mb4",
+            $my['user'],
+            $my['password']
+        );
     }
-
-
-    /**
-     * @param $host MySQL Host
-     * @param $user MySQL User
-     * @param $password MySQL Password
-     * @param $database MySQL database
-     * @return FQDB instance
-     */
-    public static function dbWithMySQLHostUserPasswordDatabase($host, $user, $password, $database) {
+    
+    public static function dbWithMySQLHostUserPasswordDatabase(string $host, string $user, string $password, string $database): FQDB
+    {
         return self::dbWithDSN("mysql:host={$host};dbname={$database};charset=utf8mb4", $user, $password);
     }
     
-    public static function dbWithDSN($dsn, $user = null, $password = null)
+    public static function dbWithDSN(string $dsn, string $user = '', string $password = ''): FQDB
     {
         return new FQDB($dsn, $user, $password);
     }
-
-
-    /**
-     * @param $fqdb - FQDB instance to set as default
-     * @return \Readdle\Database\FQDB that instance
-     */
-    public static function setDefaultFQDB($fqdb) {
+    
+    public static function setDefaultFQDB(?FQDB $fqdb = null): ?FQDB
+    {
         self::$defaultFQDB = $fqdb;
         return $fqdb;
     }
-
-
+    
+    
     /**
      * @param $callback - callable that creates default FQDB instance
      */
-    public static function setDefaultFQDBCreator($callback) {
+    public static function setDefaultFQDBCreator(?callable $callback = null): void
+    {
         self::$FQDBCreatorCallback = $callback;
     }
-
-
-
-
-    /**
-     * returns default FQDB
-     * @return \Readdle\Database\FQDB
-     */
-    public static function defaultFQDB() {
-        if (self::$defaultFQDB)
+    
+    public static function defaultFQDB(): FQDB
+    {
+        if (self::$defaultFQDB) {
             return self::$defaultFQDB;
-
-        if (is_callable(self::$FQDBCreatorCallback))
-            return self::setDefaultFQDB(call_user_func(self::$FQDBCreatorCallback));
+        }
+        
+        if (\is_callable(self::$FQDBCreatorCallback)) {
+            self::$defaultFQDB = \call_user_func(self::$FQDBCreatorCallback);
+            return self::$defaultFQDB;
+        }
+        
+        throw FQDBException::assertion("FQDB Creator should be specified or manually injected with setDefaultFQDB");
     }
-
-
 }
