@@ -2,7 +2,7 @@
 
 namespace Readdle\Database;
 
-final class FQDB extends FQDBWriteAPI 
+final class FQDB extends FQDBWriteAPI
 {
     
 }

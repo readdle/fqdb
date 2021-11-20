@@ -23,8 +23,8 @@ class FQDBExecutor implements FQDBInterface
     /** @var Resolver */
     private static $connectionResolver;
     private ?EventDispatcherInterface $dispatcher = null;
-    private bool $warningReporting = false;
-    private string $databaseServer = self::DB_DEFAULT; // for SQL specific stuff
+    private bool $warningReporting                = false;
+    private string $databaseServer                = self::DB_DEFAULT; // for SQL specific stuff
     private int $lastCheckTime;
     private array $connectData;
     /** @var callable|null */

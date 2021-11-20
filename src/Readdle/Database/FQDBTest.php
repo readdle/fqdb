@@ -120,7 +120,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertCount(0, $noValues);
         
         $count  = \intval($this->fqdb->queryValue("SELECT COUNT(*) FROM test"));
-        $values = $this->fqdb->queryVector("SELECT * FROM test");
+        $values = $this->fqdb->queryVector("SELECT cast(id as text) FROM test");
         $this->assertCount($count, $values);
         $this->assertIsString($values[0]);
     }
