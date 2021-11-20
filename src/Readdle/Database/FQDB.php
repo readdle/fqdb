@@ -2,16 +2,7 @@
 
 namespace Readdle\Database;
 
-final class FQDB extends FQDBWriteAPI implements \Serializable
+final class FQDB extends FQDBWriteAPI 
 {
-    // we could not serialize PDO object anyway
-    public function serialize()
-    {
-        return null;
-    }
-
-    public function unserialize($string)
-    {
-        return null;
-    }
+    
 }
