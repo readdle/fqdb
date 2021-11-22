@@ -288,7 +288,7 @@ class FQDBExecutor implements FQDBInterface
         }
 
 
-        if (\count($queryWarnings) > 0) {
+        if (($queryWarnings !== false) && \count($queryWarnings) > 0) {
             $warnings = "Query:\n{$query}\n";
 
             if (!empty($params)) {
