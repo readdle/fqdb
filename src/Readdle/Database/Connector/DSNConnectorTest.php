@@ -15,7 +15,7 @@ class DSNConnectorTest extends \PHPUnit\Framework\TestCase
     /**
      * @dataProvider supportProvider
      */
-    public function testSupport(array $option, $expected): void
+    public function testSupport(array $option, bool $expected): void
     {
         $actual = $this->connector->supports($option);
         $this->assertEquals($expected, $actual);
