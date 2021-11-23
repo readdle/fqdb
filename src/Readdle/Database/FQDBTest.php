@@ -38,7 +38,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->dispatcher = $this->prophesize(EventDispatcherInterface::class);
     }
     
-    public function testInsert()
+    public function testInsert(): void
     {
         $lastInsertId1 = $this->fqdb->insert(
             "INSERT INTO test (content, data) VALUES ('test', :data)",
@@ -55,13 +55,13 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
     }
     
     
-    public function testReplace()
+    public function testReplace(): void
     {
         $affected = $this->fqdb->replace("REPLACE INTO test (id, content, data) VALUES (1, 'test', 'data')");
         $this->assertEquals(1, $affected);
     }
     
-    public function testDelete()
+    public function testDelete(): void
     {
         $this->dispatcher
             ->dispatch(Argument::type(DeleteQueryStarted::class))
@@ -76,7 +76,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($count, 2);
     }
     
-    public function testQueryValue()
+    public function testQueryValue(): void
     {
         $noValue = $this->fqdb->queryValue("SELECT content FROM test WHERE id=100");
         $this->assertEquals($noValue, false);
@@ -91,7 +91,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('data', $value);
     }
     
-    public function testQueryList()
+    public function testQueryList(): void
     {
         $noValues = $this->fqdb->queryList("SELECT * FROM test WHERE id=100");
         $this->assertFalse($noValues);
@@ -102,7 +102,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertArrayHasKey(2, $values);
     }
     
-    public function testQueryAssoc()
+    public function testQueryAssoc(): void
     {
         $noValues = $this->fqdb->queryAssoc("SELECT * FROM test WHERE id=100");
         $this->assertFalse($noValues);
@@ -114,18 +114,18 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertArrayHasKey('data', $values);
     }
     
-    public function testQueryVector()
+    public function testQueryVector(): void
     {
         $noValues = $this->fqdb->queryVector("SELECT * FROM test WHERE id=100");
         $this->assertCount(0, $noValues);
         
         $count  = \intval($this->fqdb->queryValue("SELECT COUNT(*) FROM test"));
-        $values = $this->fqdb->queryVector("SELECT * FROM test");
+        $values = $this->fqdb->queryVector("SELECT cast(id as text) FROM test");
         $this->assertCount($count, $values);
         $this->assertIsString($values[0]);
     }
     
-    public function testQueryTable()
+    public function testQueryTable(): void
     {
         $noValues = $this->fqdb->queryTable("SELECT * FROM test WHERE id=100");
         $this->assertCount(0, $noValues);
@@ -136,7 +136,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
     }
     
     
-    public function testQueryObj()
+    public function testQueryObj(): void
     {
         $noObject = $this->fqdb->queryObj("SELECT * FROM test WHERE id=100", QueryObject::class);
         $this->assertFalse($noObject);
@@ -146,7 +146,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(1, $object->id);
     }
     
-    public function testQueryTableCallbackOk()
+    public function testQueryTableCallbackOk(): void
     {
         $sql        = "SELECT * FROM test";
         $sqlOptions = [];
@@ -165,14 +165,13 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($resultArray, $callbackResultArray);
     }
     
-    public function testQueryObjException()
+    public function testQueryObjException(): void
     {
         $this->expectException(\Readdle\Database\FQDBException::class);
-        $noObject = $this->fqdb->queryObj("SELECT * FROM test WHERE id=100", '\NoObject');
-        return $noObject;
+        $this->fqdb->queryObj("SELECT * FROM test WHERE id=100", '\NoObject');
     }
     
-    public function testQueryObjArray()
+    public function testQueryObjArray(): void
     {
         $noValues = $this->fqdb->queryObjArray("SELECT * FROM test WHERE id=100", QueryObject::class);
         $this->assertCount(0, $noValues);
@@ -185,14 +184,13 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         }
     }
     
-    public function testQueryObjArrayException()
+    public function testQueryObjArrayException(): void
     {
         $this->expectException(\Readdle\Database\FQDBException::class);
-        $noObject = $this->fqdb->queryObjArray("SELECT * FROM test", '\NoObject');
-        return $noObject;
+        $this->fqdb->queryObjArray("SELECT * FROM test", '\NoObject');
     }
     
-    public function testUpdate()
+    public function testUpdate(): void
     {
         $this->dispatcher
             ->dispatch(Argument::type(UpdateQueryStarted::class))
@@ -205,7 +203,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($countInTable, $count);
     }
     
-    public function testBeginRollbackTransaction()
+    public function testBeginRollbackTransaction(): void
     {
         $this->dispatcher
             ->dispatch(Argument::type(TransactionStarted::class))
@@ -226,7 +224,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertFalse($noValues);
     }
     
-    public function testBeginCommitTransaction()
+    public function testBeginCommitTransaction(): void
     {
         $this->dispatcher
             ->dispatch(Argument::type(TransactionStarted::class))
@@ -246,14 +244,14 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(8, $eight);
     }
     
-    public function testCommitException()
+    public function testCommitException(): void
     {
         $this->expectException(\Readdle\Database\FQDBException::class);
         $this->fqdb->commitTransaction();
     }
     
     
-    public function testPlaceholder()
+    public function testPlaceholder(): void
     {
         $test = $this->fqdb->queryAssoc("SELECT * FROM test WHERE id=:id", [':id' => 1]);
         $this->assertArrayHasKey('id', $test);
@@ -265,21 +263,21 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertArrayHasKey(':key3', $test);
     }
     
-    public function testPlaceholderException1()
+    public function testPlaceholderException1(): void
     {
         $this->expectException(\Readdle\Database\FQDBException::class);
         
         $this->fqdb->queryAssoc("SELECT * FROM test WHERE id=:id");
     }
     
-    public function testPlaceholderException2()
+    public function testPlaceholderException2(): void
     {
         $this->expectException(\Readdle\Database\FQDBException::class);
         
         $this->fqdb->queryAssoc("SELECT * FROM test WHERE id=:id AND content=:content", [':id' => 1, 'content' => 2]);
     }
     
-    public function testPlaceholderException3()
+    public function testPlaceholderException3(): void
     {
         $this->expectException(\Readdle\Database\FQDBException::class);
         
@@ -289,21 +287,21 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         );
     }
     
-    public function testGeneralException()
+    public function testGeneralException(): void
     {
         $this->expectException(\Readdle\Database\FQDBException::class);
         
         $this->fqdb->insert("INSSSSERT!");
     }
     
-    public function testInsertException()
+    public function testInsertException(): void
     {
         $this->expectException(\Readdle\Database\FQDBException::class);
         
         $this->fqdb->insert("UPDATE test SET content='new'");
     }
     
-    public function testQueryValueException()
+    public function testQueryValueException(): void
     {
         $this->expectException(\Readdle\Database\FQDBException::class);
         
@@ -311,24 +309,24 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
     }
     
     
-    public function testGetPDO()
+    public function testGetPDO(): void
     {
         $this->assertInstanceOf('\PDO', $this->fqdb->getPdo());
     }
     
-    public function testQuote()
+    public function testQuote(): void
     {
         $quoted = $this->fqdb->quote("'test'");
         $this->assertEquals("'''test'''", $quoted);
     }
     
-    public function testQuoteIdentifier()
+    public function testQuoteIdentifier(): void
     {
         $quoted = $this->fqdb->quote("test", FQDB::QUOTE_IDENTIFIER);
         $this->assertEquals("`test`", $quoted);
     }
     
-    public function testErrorHandler()
+    public function testErrorHandler(): void
     {
         $this->expectException(SpecialException::class);
         
@@ -347,7 +345,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
     }
     
     
-    public function testWarningHandler()
+    public function testWarningHandler(): void
     {
         
         $warningText = false;
@@ -378,7 +376,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertFalse($this->fqdb->getWarningReporting());
     }
     
-    public function testWhereInStatement()
+    public function testWhereInStatement(): void
     {
         $this->fqdb->insert(
             "INSERT INTO test (id, content, data) VALUES (1000, 'where_in_test', :data)",
@@ -433,7 +431,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(0, \count($result));
     }
     
-    public function testBlobInsert()
+    public function testBlobInsert(): void
     {
         $blobData = \chr(7) . 'test' . \chr(0);
         
@@ -447,7 +445,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($blobData, $blob);
     }
     
-    public function testTrimmedQuery()
+    public function testTrimmedQuery(): void
     {
         $blobData = \chr(7) . 'test' . \chr(0);
         
@@ -497,7 +495,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($blobData, $blob);
     }
     
-    public function testQueryHash()
+    public function testQueryHash(): void
     {
         $this->fqdb->execute(
             "CREATE TABLE `test_hash` (
@@ -525,7 +523,7 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($hash23['second2'], 'second3');
     }
     
-    public function testQueryTableGenerator()
+    public function testQueryTableGenerator(): void
     {
         $this->fqdb->execute(
             "CREATE TABLE `test_querygenerator` (
@@ -555,9 +553,9 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
 // for queryObject tests
 class QueryObject
 {
-    public $id;
-    public $test;
-    public $data;
+    public int $id;
+    public string $test;
+    public string $data;
 }
 
 class SpecialException extends \Exception

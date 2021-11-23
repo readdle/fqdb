@@ -119,13 +119,15 @@ class FQDBQueryAPI extends FQDBExecutor
             }
         );
     }
-    
+
     private function runQuery(string $query, array $params): \PDOStatement
     {
         $this->assertQueryStarts($query, '[select|show]');
         $statement = $this->executeQuery($query, $params);
         if (!$statement instanceof \PDOStatement) {
-            $this->error(FQDBException::assertion("Expect select/show query execution returns PODStatement"));
+            $error = FQDBException::assertion("Expect select/show query execution returns PODStatement");
+            $this->error($error);
+            throw $error; // for static analyser, TODO: refactor error()
         }
         return $statement;
     }

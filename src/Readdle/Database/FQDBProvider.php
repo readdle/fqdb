@@ -2,10 +2,12 @@
 
 namespace Readdle\Database;
 
+use Closure;
+
 final class FQDBProvider
 {
-    private static $defaultFQDB;
-    private static $FQDBCreatorCallback;
+    private static ?FQDB $defaultFQDB            = null;
+    private static ?Closure $FQDBCreatorCallback = null;
     
     /**
      * @return array - parsed key-value array of ~/.my.cnf
@@ -101,7 +103,7 @@ final class FQDBProvider
      */
     public static function setDefaultFQDBCreator(?callable $callback = null): void
     {
-        self::$FQDBCreatorCallback = $callback;
+        self::$FQDBCreatorCallback = \is_callable($callback) ? Closure::fromCallable($callback) : null;
     }
     
     public static function defaultFQDB(): FQDB
@@ -110,8 +112,8 @@ final class FQDBProvider
             return self::$defaultFQDB;
         }
         
-        if (\is_callable(self::$FQDBCreatorCallback)) {
-            self::$defaultFQDB = \call_user_func(self::$FQDBCreatorCallback);
+        if (null != self::$FQDBCreatorCallback) {
+            self::$defaultFQDB = (self::$FQDBCreatorCallback)();
             return self::$defaultFQDB;
         }
         

@@ -8,6 +8,7 @@ use Readdle\Database\Event\TransactionStarted;
 use Readdle\Database\Event\TransactionCommitted;
 use Readdle\Database\Event\TransactionRolledBack;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\Event;
 
 class FQDBExecutor implements FQDBInterface
 {
@@ -23,8 +24,8 @@ class FQDBExecutor implements FQDBInterface
     /** @var Resolver */
     private static $connectionResolver;
     private ?EventDispatcherInterface $dispatcher = null;
-    private bool $warningReporting = false;
-    private string $databaseServer = self::DB_DEFAULT; // for SQL specific stuff
+    private bool $warningReporting                = false;
+    private string $databaseServer                = self::DB_DEFAULT; // for SQL specific stuff
     private int $lastCheckTime;
     private array $connectData;
     /** @var callable|null */
@@ -127,7 +128,7 @@ class FQDBExecutor implements FQDBInterface
                 $quoteSymbol = '`';
             }
 
-            // quotes inside mysql field are so rare, that we'd rather ban them
+            // quotes inside mysql fieQld are so rare, that we'd rather ban them
             if (false !== \strpos($string, $quoteSymbol)) {
                 $this->error(FQDBException::unableToQuote($string));
             }
@@ -210,7 +211,7 @@ class FQDBExecutor implements FQDBInterface
         throw $error;
     }
     
-    protected function dispatch($event): void
+    protected function dispatch(Event $event): void
     {
         if (null === $this->dispatcher) {
             return;
@@ -219,6 +220,7 @@ class FQDBExecutor implements FQDBInterface
         $this->dispatcher->dispatch($event);
     }
     
+
     /** @return \PDOStatement|string */
     protected function executeQuery(string $query, array $params, bool $needsLastInsertId = false)
     {
@@ -246,7 +248,7 @@ class FQDBExecutor implements FQDBInterface
         
         $this->reportWarnings($query, $params);
         
-        return isset($lastInsertId) ? $lastInsertId : $statement;
+        return $lastInsertId ?? $statement;
     }
     
     private static function connectorResolver(): Resolver
@@ -286,7 +288,7 @@ class FQDBExecutor implements FQDBInterface
         }
 
 
-        if (\count($queryWarnings) > 0) {
+        if ((false !== $queryWarnings) && \count($queryWarnings) > 0) {
             $warnings = "Query:\n{$query}\n";
 
             if (!empty($params)) {
@@ -374,7 +376,7 @@ class FQDBExecutor implements FQDBInterface
     /**
      * @throws FQDBException - when placeholders are not set properly
      */
-    private function _preExecuteOptionsCheck(string $query, array $params)
+    private function _preExecuteOptionsCheck(string $query, array $params): void
     {
         \preg_match_all('/:[a-z]\w*/u', $query, $placeholders);
         // !!!!WARNING!!!! placeholders SHOULD start form lowercase letter!

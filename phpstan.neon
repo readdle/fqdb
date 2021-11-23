@@ -9,7 +9,7 @@ parameters:
 		- src
 	ignoreErrors:
 		-
-			message: "#^Parameter \\#3 \\.\\.\\.\\$args of method PDOStatement::fetchAll\\(\\) expects \\(callable\\(\\): mixed\\)\\|int\\|string, array\\|null given\\.$#"
+			message: "#^Parameter \\#3 \\.\\.\\.\\$(args|fetch_argument) of method PDOStatement::fetchAll\\(\\) expects \\(callable\\(\\): mixed\\)\\|int\\|string, array\\|null given\\.$#"
 			count: 1
 			path: src/Readdle/Database/FQDBQueryAPI.php
 		-

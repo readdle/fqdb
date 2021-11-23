@@ -1,3 +1,7 @@
+# v4.0.4
+
+- no behavior change, except better compatibility with PHP 8.1
+
 # v4.0.3
 
 - [bugfix] Event dispatcher should be nullable 
