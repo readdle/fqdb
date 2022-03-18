@@ -1,3 +1,9 @@
+# v4.1.0
+
+- weakened dependency "symfony/event-dispatcher" in favor of "symfony/event-dispatcher-contracts".
+
+**POTENTIAL BC**: If you're using "symfony/event-dispatcher" as a dispatcher, please install it manually `composer require symfony/event-dispatcher` 
+
 # v4.0.4
 
 - no behavior change, except better compatibility with PHP 8.1
