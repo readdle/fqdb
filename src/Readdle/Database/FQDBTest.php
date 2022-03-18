@@ -7,25 +7,20 @@ namespace Readdle\Database;
 
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Readdle\Database\Event\DeleteQueryStarted;
 use Readdle\Database\Event\TransactionCommitted;
 use Readdle\Database\Event\TransactionRolledBack;
 use Readdle\Database\Event\TransactionStarted;
 use Readdle\Database\Event\UpdateQueryStarted;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final class FQDBTest extends \PHPUnit\Framework\TestCase
 {
     use ProphecyTrait;
     
-    /**
-     * @var FQDB $fqdb
-     */
-    private $fqdb;
-    /**
-     * @var \Prophecy\Prophecy\ObjectProphecy
-     */
-    private $dispatcher;
+    private FQDB $fqdb;
+    /** @var \Prophecy\Prophecy\ObjectProphecy|EventDispatcherInterface */
+    private \Prophecy\Prophecy\ObjectProphecy $dispatcher;
     
     protected function setUp(): void
     {

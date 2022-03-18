@@ -1,5 +1,8 @@
 includes:
 	- phpstan-baseline.neon
+	- vendor/jangregor/phpstan-prophecy/extension.neon
+	- vendor/phpstan/phpstan-phpunit/extension.neon
+	- vendor/phpstan/phpstan-phpunit/rules.neon
 
 parameters:
 	level: 7

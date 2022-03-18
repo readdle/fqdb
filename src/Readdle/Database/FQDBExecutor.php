@@ -7,7 +7,7 @@ use Readdle\Database\Connector\Resolver;
 use Readdle\Database\Event\TransactionStarted;
 use Readdle\Database\Event\TransactionCommitted;
 use Readdle\Database\Event\TransactionRolledBack;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\EventDispatcher\Event;
 
 class FQDBExecutor implements FQDBInterface
