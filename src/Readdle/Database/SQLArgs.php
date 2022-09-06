@@ -24,7 +24,8 @@ class SQLArgs implements \JsonSerializable
     {
         return $this->argsArray;
     }
-    
+
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return $this->argsArray;

@@ -1,6 +1,6 @@
 {
     "name" : "readdle/fqdb",
-    "version": "4.1.0",
+    "version": "4.2.0",
     "license": "MIT",
     "require" : {
         "php" : ">=7.4",
@@ -14,10 +14,10 @@
         "pheromone/phpcs-security-audit": "^2.0",
         "phpcompatibility/php-compatibility": "^9.3",
         "phpspec/prophecy-phpunit": "^2.0",
-        "phpstan/phpstan": "^1.4",
+        "phpstan/phpstan": "^1.8",
         "phpstan/phpstan-phpunit": "^1.0",
         "phpunit/phpunit": "^9.5",
-        "slevomat/coding-standard": "^7.0",
+        "slevomat/coding-standard": "^8.4",
         "squizlabs/php_codesniffer": "^3.6"
     },
     "autoload": {
@@ -27,7 +27,10 @@
         ]
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
     },
     "scripts": {
         "register-standards": "phpcs --config-set installed_paths $(pwd),$(pwd)/vendor/slevomat/coding-standard,$(pwd)/vendor/phpcompatibility/php-compatibility,$(pwd)/vendor/pheromone/phpcs-security-audit,$(pwd)/vendor/escapestudios/symfony2-coding-standard 2>/dev/null || true",
