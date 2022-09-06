@@ -1,3 +1,7 @@
+# v4.2.0
+
+- PHP8.1: fixed compatibility issues with \JsonSerializable interface 
+
 # v4.1.0
 
 - weakened dependency "symfony/event-dispatcher" in favor of "symfony/event-dispatcher-contracts".

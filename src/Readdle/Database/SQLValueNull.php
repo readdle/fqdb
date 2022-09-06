@@ -9,6 +9,7 @@ class SQLValueNull extends BaseSQLValue
         $statement->bindValue($placeholder, null, \PDO::PARAM_NULL);
     }
 
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return null;

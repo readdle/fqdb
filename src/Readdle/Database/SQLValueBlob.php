@@ -20,7 +20,8 @@ class SQLValueBlob extends BaseSQLValue
     {
         $statement->bindParam($placeholder, $this->blob, \PDO::PARAM_LOB);
     }
-    
+
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return \base64_encode($this->blob);
