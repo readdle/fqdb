@@ -242,7 +242,7 @@ class FQDBExecutor implements FQDBInterface
             $this->lastCheckTime = \time();
             
             if ($needsLastInsertId) {
-                $lastInsertId = (int) $this->pdo->lastInsertId(); // if table has no AUTO_INCREMENT PRI KEY, there will be 0
+                $lastInsertId = (int)$this->pdo->lastInsertId(); // if table has no AUTO_INCREMENT PRI KEY, there will be 0
             }
         } catch (\PDOException $e) {
             $this->error(FQDBException::pdo($e, ["query" => $query, "params" => $params]));
