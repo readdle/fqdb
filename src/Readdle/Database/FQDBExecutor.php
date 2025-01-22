@@ -219,9 +219,11 @@ class FQDBExecutor implements FQDBInterface
         
         $this->dispatcher->dispatch($event);
     }
-    
 
-    /** @return \PDOStatement|string */
+    /**
+     * @return \PDOStatement|int
+     *      int if `$needsLastInsertId` is true. Will be `0` if the table has no AUTO_INCREMENT PRIMARY KEY
+     */
     protected function executeQuery(string $query, array $params, bool $needsLastInsertId = false)
     {
         $this->checkConnection();
@@ -240,7 +242,7 @@ class FQDBExecutor implements FQDBInterface
             $this->lastCheckTime = \time();
             
             if ($needsLastInsertId) {
-                $lastInsertId = $this->pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
+                $lastInsertId = (int) $this->pdo->lastInsertId(); // if table has no AUTO_INCREMENT PRI KEY, there will be 0
             }
         } catch (\PDOException $e) {
             $this->error(FQDBException::pdo($e, ["query" => $query, "params" => $params]));

@@ -25,7 +25,7 @@ class FQDBWriteAPI extends FQDBQueryAPI
         return $statement->rowCount();
     }
     
-    public function insert(string $query, array $params = []): string
+    public function insert(string $query, array $params = []): int
     {
         $this->assertQueryStarts($query, 'insert');
         return $this->executeQuery($query, $params, true);
