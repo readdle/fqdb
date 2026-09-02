@@ -26,28 +26,51 @@ class FQDBExecutor implements FQDBInterface
     private ?EventDispatcherInterface $dispatcher = null;
     private bool $warningReporting                = false;
     private string $databaseServer                = self::DB_DEFAULT; // for SQL specific stuff
-    private int $lastCheckTime;
+    private int $lastCheckTime                    = 0;
     private array $connectData;
     /** @var callable|null */
     private $warningHandler;
     /** @var callable|null */
     private $errorHandler;
-    private \PDO $pdo;
+    private ?\PDO $pdo = null;
 
-    public function __construct(string $dsn, string $username = '', string $password = '', array $driver_options = [])
-    {
+    /**
+     * @param bool $lazyConnection opt-in: when true, the connection is not established here but
+     *                             on the first actual use, so an instance created for a code path
+     *                             that never queries costs nothing. Off by default, i.e. the
+     *                             constructor connects, as it always did.
+     */
+    public function __construct(
+        string $dsn,
+        string $username = '',
+        string $password = '',
+        array $driver_options = [],
+        bool $lazyConnection = false
+    ) {
         $this->connectData = [
             "dsn"            => $dsn,
             "username"       => $username,
             "password"       => $password,
             "driver_options" => $driver_options,
         ];
-        $this->connect();
+        
+        // The database server is derived from the DSN, so that SQL dialect specific helpers
+        // (e.g. self::quote() with QUOTE_IDENTIFIER) behave correctly on a deferred connection
+        // as well. It is refined out of PDO::ATTR_DRIVER_NAME once connected.
+        $this->databaseServer = self::databaseServerFromDsn($dsn);
+        
+        if (!$lazyConnection) {
+            $this->connect();
+        }
     }
     
-    public static function registerConnector(ConnectorInterface $connector): void
+    /**
+     * @param int $priority connectors with a higher priority are resolved first;
+     *                      the built-in DSNConnector has priority 0
+     */
+    public static function registerConnector(ConnectorInterface $connector, int $priority = 0): void
     {
-        self::connectorResolver()->registerConnector($connector);
+        self::connectorResolver()->registerConnector($connector, $priority);
     }
     
     public function setEventDispatcher(EventDispatcherInterface $dispatcher): void
@@ -55,9 +78,18 @@ class FQDBExecutor implements FQDBInterface
         $this->dispatcher = $dispatcher;
     }
     
+    /**
+     * Establishes the connection first if it has been deferred, see the $lazyConnection
+     * constructor argument.
+     */
     public function getPdo(): \PDO
     {
-        return $this->pdo;
+        return $this->pdo();
+    }
+    
+    public function isConnected(): bool
+    {
+        return null !== $this->pdo;
     }
 
     /**
@@ -83,7 +115,7 @@ class FQDBExecutor implements FQDBInterface
         $this->checkConnection();
 
         try {
-            $this->pdo->beginTransaction();
+            $this->pdo()->beginTransaction();
             $this->dispatch(new TransactionStarted());
             $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
@@ -94,7 +126,7 @@ class FQDBExecutor implements FQDBInterface
     public function commitTransaction(): void
     {
         try {
-            $this->pdo->commit();
+            $this->pdo()->commit();
             $this->dispatch(new TransactionCommitted());
             $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
@@ -106,7 +138,7 @@ class FQDBExecutor implements FQDBInterface
     public function rollbackTransaction(): void
     {
         try {
-            $this->pdo->rollBack();
+            $this->pdo()->rollBack();
             $this->dispatch(new TransactionRolledBack());
             $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
@@ -135,7 +167,7 @@ class FQDBExecutor implements FQDBInterface
 
             return $quoteSymbol . $string . $quoteSymbol;
         } else {
-            return $this->pdo->quote($string);
+            return $this->pdo()->quote($string);
         }
     }
     
@@ -172,11 +204,11 @@ class FQDBExecutor implements FQDBInterface
     public function connect(): void
     {
         try {
-            $this->pdo = self::connectorResolver()
+            $pdo = self::connectorResolver()
                 ->resolve($this->connectData)
                 ->connect($this->connectData);
             
-            $driverName = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+            $driverName = $pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
             
             if (false !== \strpos($driverName, 'mysql')) {
                 $this->databaseServer = self::DB_MYSQL;
@@ -184,7 +216,8 @@ class FQDBExecutor implements FQDBInterface
                 $this->databaseServer = self::DB_SQLITE;
             }
 
-            $this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $this->pdo           = $pdo;
             $this->lastCheckTime = \time();
         } catch (\PDOException $e) {
             $this->error(FQDBException::pdo($e));
@@ -229,7 +262,7 @@ class FQDBExecutor implements FQDBInterface
         try {
             [$query, $params] = $this->prepareStatement($query, $params);
             
-            $statement = $this->pdo->prepare($query);
+            $statement = $this->pdo()->prepare($query);
             
             $this->_preExecuteOptionsCheck($query, $params);
             
@@ -240,7 +273,7 @@ class FQDBExecutor implements FQDBInterface
             $this->lastCheckTime = \time();
             
             if ($needsLastInsertId) {
-                $lastInsertId = $this->pdo->lastInsertId(); // if table has no PRI KEY, there will be 0
+                $lastInsertId = $this->pdo()->lastInsertId(); // if table has no PRI KEY, there will be 0
             }
         } catch (\PDOException $e) {
             $this->error(FQDBException::pdo($e, ["query" => $query, "params" => $params]));
@@ -249,6 +282,43 @@ class FQDBExecutor implements FQDBInterface
         $this->reportWarnings($query, $params);
         
         return $lastInsertId ?? $statement;
+    }
+    
+    /**
+     * Establishes a deferred connection on first use.
+     *
+     * @throws \Readdle\Database\FQDBException if the connection can not be established
+     */
+    private function pdo(): \PDO
+    {
+        if (null === $this->pdo) {
+            $this->connect();
+        }
+        
+        return $this->pdo;
+    }
+    
+    /**
+     * Best effort detection of the SQL dialect out of the DSN, without connecting.
+     * Refined in self::connect() out of PDO::ATTR_DRIVER_NAME once connected.
+     */
+    private static function databaseServerFromDsn(string $dsn): string
+    {
+        $scheme = \strstr($dsn, ':', true);
+        
+        if (false === $scheme) {
+            return self::DB_DEFAULT;
+        }
+        
+        if (false !== \strpos($scheme, 'mysql')) {
+            return self::DB_MYSQL;
+        }
+        
+        if (false !== \strpos($scheme, 'sqlite')) {
+            return self::DB_SQLITE;
+        }
+        
+        return self::DB_DEFAULT;
     }
     
     private static function connectorResolver(): Resolver
@@ -264,6 +334,10 @@ class FQDBExecutor implements FQDBInterface
      */
     private function checkConnection(): void
     {
+        if (null === $this->pdo) {
+            return; // self::pdo() will establish a fresh connection
+        }
+        
         if (self::DB_MYSQL !== $this->databaseServer) {
             return;
         }
@@ -281,10 +355,10 @@ class FQDBExecutor implements FQDBInterface
     private function getWarnings(string $query, array $params = []): string
     {
         if (self::DB_MYSQL === $this->databaseServer) {
-            $stm           = $this->pdo->query('SHOW WARNINGS');
+            $stm           = $this->pdo()->query('SHOW WARNINGS');
             $queryWarnings = $stm->fetchAll(\PDO::FETCH_ASSOC);
         } else {
-            $queryWarnings = [['Message' => 'WarningReporting not impl. for ' . $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME)]];
+            $queryWarnings = [['Message' => 'WarningReporting not impl. for ' . $this->pdo()->getAttribute(\PDO::ATTR_DRIVER_NAME)]];
         }
 
 

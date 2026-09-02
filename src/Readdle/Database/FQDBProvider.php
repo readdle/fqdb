@@ -91,6 +91,15 @@ final class FQDBProvider
         return new FQDB($dsn, $user, $password);
     }
     
+    /**
+     * Same as self::dbWithDSN(), but the connection is established on the first actual use
+     * instead of right away.
+     */
+    public static function lazyDbWithDSN(string $dsn, string $user = '', string $password = '', array $driverOptions = []): FQDB
+    {
+        return new FQDB($dsn, $user, $password, $driverOptions, true);
+    }
+    
     public static function setDefaultFQDB(?FQDB $fqdb = null): ?FQDB
     {
         self::$defaultFQDB = $fqdb;

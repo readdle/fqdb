@@ -542,6 +542,59 @@ final class FQDBTest extends \PHPUnit\Framework\TestCase
         }
         $this->assertEquals($values, $result);
     }
+    
+    public function testConnectionIsEstablishedOnConstructionByDefault(): void
+    {
+        $fqdb = FQDBProvider::dbWithDSN('sqlite::memory:');
+        
+        $this->assertTrue($fqdb->isConnected());
+    }
+    
+    public function testBadDsnFailsOnConstructionByDefault(): void
+    {
+        $this->expectException(FQDBException::class);
+        FQDBProvider::dbWithDSN('sqlite:/this/path/does/not/exist/db.sqlite');
+    }
+    
+    public function testLazyConnectionIsDeferredUntilFirstUse(): void
+    {
+        $fqdb = FQDBProvider::lazyDbWithDSN('sqlite::memory:');
+        
+        $this->assertFalse($fqdb->isConnected());
+        
+        $fqdb->execute("CREATE TABLE lazy ( id INTEGER PRIMARY KEY ASC );");
+        
+        $this->assertTrue($fqdb->isConnected());
+    }
+    
+    public function testGetPdoEstablishesADeferredConnection(): void
+    {
+        $fqdb = FQDBProvider::lazyDbWithDSN('sqlite::memory:');
+        
+        $this->assertInstanceOf('\PDO', $fqdb->getPdo());
+        $this->assertTrue($fqdb->isConnected());
+    }
+    
+    public function testDeferredBadDsnFailsOnFirstUseInsteadOfOnConstruction(): void
+    {
+        $fqdb = FQDBProvider::lazyDbWithDSN('sqlite:/this/path/does/not/exist/db.sqlite');
+        
+        $this->assertFalse($fqdb->isConnected());
+        
+        $this->expectException(FQDBException::class);
+        $fqdb->queryValue("SELECT 1");
+    }
+    
+    public function testIdentifiersAreQuotedByDialectWithoutConnecting(): void
+    {
+        $mysql = FQDBProvider::lazyDbWithDSN('mysql:host=127.0.0.1;port=1;dbname=nonexistent');
+        $ansi  = FQDBProvider::lazyDbWithDSN('pgsql:host=127.0.0.1;port=1;dbname=nonexistent');
+        
+        $this->assertEquals('`column`', $mysql->quote('column', FQDB::QUOTE_IDENTIFIER));
+        $this->assertEquals('"column"', $ansi->quote('column', FQDB::QUOTE_IDENTIFIER));
+        $this->assertFalse($mysql->isConnected());
+        $this->assertFalse($ansi->isConnected());
+    }
 }
 
 
